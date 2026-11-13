@@ -925,7 +925,7 @@ function endMatchDialog(m){
     el.querySelector("#cx").onclick=closeModal;el.querySelector("#ok").onclick=()=>{const t=el.querySelector("#rt").value.trim();closeModal();endMatch(m,t);};});
 }
 
-function partialNote(t){const n=Object.values(S.matches).filter(m=>(!t||m.tournament===t)&&(m.innings||[]).some(i=>i.card&&i.card.partial)).length;
+function partialNote(t,se){const n=Object.values(S.matches).filter(m=>!m.local&&tourIn(m.tournament,t)&&(!se||seasonOf(m.date)===se)&&(m.innings||[]).some(i=>i.card&&i.card.partial)).length;
   return n?`<div class="note" style="margin-bottom:14px">${n} imported match${n===1?" has":"es have"} partial scorecards, so some players' totals are incomplete. Open a match to see which figures are missing.</div>`:"";}
 /* ----- local cricket ----- */
 function monthName(mo){if(!mo)return"";const [y,m]=mo.split("-");return new Date(+y,+m-1,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});}
@@ -1099,7 +1099,7 @@ function vLeaders(app){
   const list=(title,arr,val,sub)=>`<div class="card" style="margin:0"><h3>${title}</h3>${arr.length?arr.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span> <span class="small muted">${esc(sub(p))}</span></span><span class="v">${val(p)}</span></div>`).join(""):'<div class="small muted">Not enough data yet</div>'}</div>`;
   const hs=[];for(const m of matchFilter(S.lbF))for(const inn of m.innings||[]){const c=calc(inn);for(const id of c.order){const x=c.bat[id];if(x.b||x.r)hs.push({id,r:x.r,b:x.b,no:!x.out,vs:tsn(inn.bowl)});}}
   hs.sort((a,b)=>b.r-a.r||a.b-b.b);
-  app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2>Leaderboards</h2>${filterBar("lf")}${partialNote()}
+  app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2>Leaderboards</h2>${filterBar("lf")}${partialNote(S.lbF.t,S.lbF.s)}
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr))">
    ${list("🏆 Most runs",st.filter(p=>p.r>0).sort((a,b)=>b.r-a.r).slice(0,10),p=>p.r,p=>`${p.inn} inns · avg ${fmt(p.avg)}`)}
    ${list("🎯 Most wickets",st.filter(p=>p.w>0).sort((a,b)=>b.w-a.w||a.br-b.br).slice(0,10),p=>p.w,p=>`${ov(p.bb)} ov · econ ${fmt(p.eco)}`)}
