@@ -114,6 +114,8 @@ nav,.tabs{scrollbar-width:none;-ms-overflow-style:none}nav::-webkit-scrollbar,.t
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 h2{font-size:19px}
 .ci{display:inline-block;text-decoration:none}.btn.ci:not(.g){background:#c81e1e}
+.bell{margin-left:auto;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font:700 13px Inter,sans-serif;padding:7px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}.bell.on{background:#f2a900;border-color:#f2a900;color:#16191d}.bell:hover{background:rgba(255,255,255,.22)}.bell.on:hover{background:#f2a900}
+@media (max-width:560px){.bell span{display:none}}
 .more{display:block;width:100%;margin-top:12px}
 @media (max-width:560px){.ng{display:none}.score{font-size:15.5px}.brand small{display:none}.hwrap{padding-top:10px;gap:4px}main{padding:12px 12px 50px}.grid{gap:10px}.card{padding:14px}nav a{padding:10px 11px}}
 @media (prefers-reduced-motion:reduce){#app.fade{animation:none}.mc:hover{transform:none}}
@@ -121,7 +123,7 @@ h2{font-size:19px}
 </head>
 <body>
 <header><div class="hwrap">
-  <div class="brand">🏏 CricInsider.jk <small>Scores &amp; stats for Jammu &amp; Kashmir cricket · No ads</small></div>
+  <div class="brand">🏏 CricInsider.jk <small>Scores &amp; stats for Jammu &amp; Kashmir cricket · No ads</small><button id="bell" class="bell" hidden title="J&amp;K match alerts">🔔 <span>Alerts</span></button></div>
   <nav id="nav">
     <span class="ng">Domestic</span>
     <a href="#home" data-v="home">Matches</a>
@@ -142,6 +144,7 @@ h2{font-size:19px}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="push-config.js"></script>
 <script>
 /* Data + sign-in layer.
    - Domestic (Ranji, SMAT...) data: data.json in this repo (read-only, updated nightly).
@@ -401,6 +404,41 @@ function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return
 window.addEventListener("hashchange",()=>{S.mTab="live";if(location.hash.startsWith("#tour-")&&location.hash!==S._lastTour){S.tSeason=undefined;S._lastTour=location.hash;}if(location.hash!=="#newmatch")S.prefMatch=null;if(!location.hash.startsWith("#tour-"))S.tTab="matches";render();window.scrollTo(0,0);});
 
 /* ---------- views ---------- */
+
+
+/* ----- browser alerts (Web Push via Cloudflare Worker) ----- */
+const PUSH={cfg:self.PUSH_CONFIG||{},reg:null,sub:null,
+  supported(){return "serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;},
+  ios(){return /iPhone|iPad|iPod/.test(navigator.userAgent);},
+  standalone(){return matchMedia("(display-mode: standalone)").matches||navigator.standalone;},
+  key(){const s=this.cfg.vapid.replace(/-/g,"+").replace(/_/g,"/");const r=atob(s+"=".repeat((4-s.length%4)%4));return Uint8Array.from(r,c=>c.charCodeAt(0));},
+  async init(){const b=$("#bell");if(!b||!this.cfg.worker)return;b.hidden=false;b.onclick=()=>this.open();
+    if(this.supported()){try{this.reg=await navigator.serviceWorker.register("sw.js");this.sub=await this.reg.pushManager.getSubscription();}catch(e){}}
+    this.paint();},
+  paint(){const b=$("#bell");if(!b)return;b.classList.toggle("on",!!this.sub);b.querySelector("span").textContent=this.sub?"Alerts on":"Alerts";},
+  async on(){const p=await Notification.requestPermission();if(p!=="granted"){toast("Notifications are blocked in your browser settings");return false;}
+    this.reg=this.reg||await navigator.serviceWorker.register("sw.js");await navigator.serviceWorker.ready;
+    this.sub=await this.reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:this.key()});
+    const r=await fetch(this.cfg.worker+"/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(this.sub.toJSON())});
+    if(!r.ok)throw new Error("subscribe failed");this.paint();return true;},
+  async off(){if(this.sub){const ep=this.sub.endpoint;try{await this.sub.unsubscribe();}catch(e){}
+    fetch(this.cfg.worker+"/unsubscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({endpoint:ep})}).catch(()=>{});}
+    this.sub=null;this.paint();},
+  open(){const can=this.supported(),iosNeedsHome=this.ios()&&!this.standalone();
+    openModal(`<div class="row sp"><h2 style="margin:0">🔔 J&amp;K match alerts</h2><button class="btn g sm" id="cx">Close</button></div>
+    <p style="margin:12px 0 6px">Get a notification on this device when <b>J&amp;K's senior team</b>:</p>
+    <div class="small" style="line-height:1.9;margin-bottom:12px">🏏 starts a match (with a link to the live score)<br>🎉 wins, loses or draws (with the result)</div>
+    ${iosNeedsHome?`<div class="note">On iPhone/iPad: tap <b>Share</b> → <b>Add to Home Screen</b>, open CricInsider.jk from your home screen, then tap 🔔 again.</div>`
+     :!can?`<div class="note">This browser doesn't support alerts. Try Chrome, Edge or Firefox.</div>`
+     :this.sub?`<p class="small muted">Alerts are <b>on</b> for this device.</p><button class="btn d" id="poff">Turn off alerts</button>`
+     :`<button class="btn" id="pon">Turn on alerts</button><p class="small muted" style="margin:10px 0 0">Free, no sign-up. Your browser will ask for permission. Turn off any time.</p>`}`,
+    el=>{el.querySelector("#cx").onclick=closeModal;
+      const on=el.querySelector("#pon"),off=el.querySelector("#poff");
+      if(on)on.onclick=async()=>{on.disabled=true;on.textContent="Turning on…";try{if(await this.on()){closeModal();toast("Alerts on 🔔 You'll hear about the next J&K match");}else{on.disabled=false;on.textContent="Turn on alerts";}}catch(e){on.disabled=false;on.textContent="Turn on alerts";toast("Couldn't turn on alerts. Please try again.");}};
+      if(off)off.onclick=async()=>{await this.off();closeModal();toast("Alerts off");};});}
+};
+setTimeout(()=>PUSH.init(),0);
+
 setInterval(()=>{try{if(!document.hidden&&Object.values(S.matches).some(m=>m.start&&!m.local&&m.status!=="done"&&Math.abs(Date.now()-Date.parse(m.start))<5*864e5)&&!document.querySelector(".modal.on")&&!document.activeElement.matches("input,select,textarea"))render();}catch(e){}},60000);
 function render(){
   const r=route();
