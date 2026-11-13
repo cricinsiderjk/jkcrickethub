@@ -94,6 +94,12 @@ th.l,td.l{text-align:left;white-space:normal}
 .ck{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}
 .res{font-weight:700;color:var(--acc)}
 .note{background:var(--acc2);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.pp-box{position:absolute;z-index:60;background:var(--card,#fff);border:1px solid var(--line,#ddd);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:300px;overflow:auto;padding:4px}
+.pp-it{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;cursor:pointer}.pp-it.on,.pp-it:hover{background:rgba(127,127,127,.14)}
+.pp-av{flex:0 0 34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;background:var(--acc,#0a7)}
+.pp-nm{font-weight:600}.pp-sub{font-size:12px;opacity:.7}.pp-new .pp-av{background:#888}
+input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90deg,transparent calc(100% - 26px),transparent 0),none}
+.pp-wrap{position:relative;flex:1 1 auto;display:flex}.pp-wrap input{flex:1 1 auto;width:100%}.pp-tick{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#2a9d5c;font-weight:700;pointer-events:none}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -260,8 +266,49 @@ function rebuildPlayers(){S.players={};const solo=t=>t.kind==="player";
 /* unique local player IDs, e.g. JK-7F3K2 (same for a player across every club and match) */
 function pcode(id){let h=2166136261;for(const c of String(id)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}return "JK-"+h.toString(36).toUpperCase().padStart(5,"0").slice(-5);}
 const isLocalP=p=>p&&(p.solo||(S.teams[p.teamId]||{}).local);
-function plOptions(){return Object.entries(S.players).filter(([,p])=>isLocalP(p)).sort((a,b)=>a[1].name.localeCompare(b[1].name))
-  .map(([id,p])=>`<option value="${esc(p.name+" · "+pcode(id))}">${esc((p.teams||[]).map(tn).join(", ")||p.district||"Player ID")}</option>`).join("");}
+function plOptions(){return "";}
+const PP={box:null,inp:null,items:[],on:0,mc:null};
+function ppMatches(){if(PP.mc)return PP.mc;const c={};for(const m of Object.values(S.matches))for(const x of Object.values(m.xi||{}))for(const id of x)c[id]=(c[id]||0)+1;PP.mc=c;setTimeout(()=>PP.mc=null,5000);return c;}
+const ppInit=n=>String(n).split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const ppHue=id=>{let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))%360;return h;};
+function ppClose(){if(PP.box)PP.box.remove();PP.box=null;PP.inp=null;PP.items=[];}
+function ppMark(inp){const q=resolvePl(inp);const ok=!!q.id;inp.classList.toggle("pp-ok",ok);const w=inp.parentNode;let t=w&&w.classList&&w.classList.contains("pp-wrap")?w.querySelector(".pp-tick"):null;if(t)t.textContent=ok?"✓":"";inp.title=ok?pn(q.id)+" · "+pcode(q.id):"";}
+function ppOpen(inp){const v=inp.value.trim().replace(/\s+/g," ").toLowerCase();if(!v){ppClose();return;}
+  const mc=ppMatches();const words=v.split(" ");
+  const hits=Object.entries(S.players).filter(([id,p])=>isLocalP(p)&&(pcode(id).toLowerCase()===v||words.every(w=>p.name.toLowerCase().split(" ").some(x=>x.startsWith(w))||p.name.toLowerCase().includes(v))))
+    .sort((a,b)=>(b[1].name.toLowerCase().startsWith(v)-a[1].name.toLowerCase().startsWith(v))||((mc[b[0]]||0)-(mc[a[0]]||0))||a[1].name.localeCompare(b[1].name)).slice(0,8);
+  if(hits.length===1&&inp.dataset.pid===hits[0][0]&&hits[0][1].name.toLowerCase()===v){ppClose();return;}
+  const exact=hits.some(([,p])=>p.name.toLowerCase()===v);
+  PP.items=hits.map(([id])=>({id}));const typed=inp.value.trim().replace(/\s+/g," ");
+  if(!/^JK-/i.test(typed))PP.items.push({nw:typed});
+  if(!PP.box){PP.box=document.createElement("div");PP.box.className="pp-box";document.body.appendChild(PP.box);
+    PP.box.addEventListener("mousedown",e=>e.preventDefault());
+    PP.box.addEventListener("click",e=>{const it=e.target.closest(".pp-it");if(it)ppPick(+it.dataset.i);});}
+  PP.inp=inp;PP.on=hits.length?0:PP.items.length-1;
+  PP.box.innerHTML=(hits.length?"":`<div class="pp-sub" style="padding:6px 10px">No player with this name yet.</div>`)+PP.items.map((x,i)=>{if(x.nw!==undefined)return`<div class="pp-it pp-new" data-i="${i}"><div class="pp-av">+</div><div><div class="pp-nm">Add “${esc(x.nw)}”</div><div class="pp-sub">${exact?"A different player with the same name":"New player, gets their own profile"}</div></div></div>`;
+    const p=S.players[x.id];const n=mc[x.id]||0;const cl=(p.teams||[]).map(tn).join(", ")||p.district||"No club yet";
+    return`<div class="pp-it" data-i="${i}"><div class="pp-av" style="background:hsl(${ppHue(x.id)},55%,42%)">${esc(ppInit(p.name))}</div><div style="min-width:0"><div class="pp-nm">${esc(p.name)}</div><div class="pp-sub">${esc(cl)} · ${n} match${n===1?"":"es"} · ${pcode(x.id)}</div></div></div>`;}).join("");
+  ppHi();const r=inp.getBoundingClientRect();Object.assign(PP.box.style,{left:(r.left+scrollX)+"px",top:(r.bottom+scrollY+4)+"px",width:Math.max(r.width,280)+"px"});}
+function ppHi(){if(!PP.box)return;[...PP.box.querySelectorAll(".pp-it")].forEach((e,i)=>{e.classList.toggle("on",+e.dataset.i===PP.on);if(+e.dataset.i===PP.on&&e.scrollIntoView)e.scrollIntoView({block:"nearest"});});}
+function ppPick(i){const x=PP.items[i],inp=PP.inp;if(!x||!inp)return;
+  if(x.nw!==undefined){inp.value=x.nw;delete inp.dataset.pid;inp.dataset.pnew="1";}else{inp.value=S.players[x.id].name;inp.dataset.pid=x.id;delete inp.dataset.pnew;}
+  ppClose();ppMark(inp);PP.picking=true;try{inp.dispatchEvent(new Event("input",{bubbles:true}));}finally{PP.picking=false;}inp.dispatchEvent(new CustomEvent("pp-picked",{bubbles:true}));}
+function ppWrap(inp){if(inp.parentNode.classList.contains("pp-wrap"))return;const w=document.createElement("span");w.className="pp-wrap";inp.parentNode.insertBefore(w,inp);w.appendChild(inp);const t=document.createElement("span");t.className="pp-tick";w.appendChild(t);inp.setAttribute("autocomplete","off");ppMark(inp);}
+document.addEventListener("input",e=>{const i=e.target;if(PP.picking||!(i.classList&&i.classList.contains("pp")))return;
+  delete i.dataset.pnew;if(i.dataset.pid&&!(S.players[i.dataset.pid]&&S.players[i.dataset.pid].name.toLowerCase()===i.value.trim().replace(/\s+/g," ").toLowerCase()))delete i.dataset.pid;ppMark(i);ppOpen(i);});
+document.addEventListener("focusout",e=>{if(e.target===PP.inp)setTimeout(()=>{if(document.activeElement!==PP.inp)ppClose();},120);});
+document.addEventListener("keydown",e=>{if(!PP.box||e.target!==PP.inp)return;
+  if(e.key==="ArrowDown"){e.preventDefault();PP.on=Math.min(PP.on+1,PP.items.length-1);ppHi();}
+  else if(e.key==="ArrowUp"){e.preventDefault();PP.on=Math.max(PP.on-1,0);ppHi();}
+  else if(e.key==="Enter"){e.preventDefault();e.stopImmediatePropagation();ppPick(PP.on);}
+  else if(e.key==="Escape"){ppClose();}},true);
+addEventListener("resize",ppClose);addEventListener("hashchange",ppClose);
+function resolvePl(inp){const q=parsePl(inp.value);if(q.id||!q.name)return q;const lo=q.name.toLowerCase();
+  const pid=inp.dataset.pid;if(pid&&S.players[pid]&&S.players[pid].name.toLowerCase()===lo)return{name:S.players[pid].name,id:pid};
+  if(inp.dataset.pnew==="1")return q;
+  const same=Object.keys(S.players).filter(k=>isLocalP(S.players[k])&&S.players[k].name.toLowerCase()===lo);
+  if(same.length===1)return{name:S.players[same[0]].name,id:same[0]};
+  if(same.length>1)return{...q,amb:same.length};return q;}
 function parsePl(v){v=String(v||"").trim().replace(/\s+/g," ");const m=v.match(/^(.*?)\s*·\s*(JK-[A-Z0-9]{5})$/i);
   if(m){const code=m[2].toUpperCase();const id=Object.keys(S.players).find(k=>isLocalP(S.players[k])&&pcode(k)===code);if(id)return{name:S.players[id].name,id};return{name:m[1].trim().slice(0,50),id:null};}
   return{name:v.slice(0,50),id:null};}
@@ -601,7 +648,7 @@ function vTeam(app,r){
    ${t.local&&AUTH.enabled?(t.registered?((AUTH.isAdmin||(AUTH.uid&&t.createdBy===AUTH.uid))?`<a class="btn g sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">Edit club details</a>`:""):`<a class="btn sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">🏟️ Register this club</a>`):""}
    ${ce?`<div class="row"><button class="btn g sm" id="et">Edit</button>${!t.local||AUTH.isAdmin?'<button class="btn d sm" id="dt">Delete team</button>':""}</div>`:""}</div></div>
   ${ce?`<div class="card"><h3>Add player</h3><form id="ap" class="row" style="align-items:end">
-     <div style="flex:2 1 200px"><label>Name or Player ID</label><input name="name" required maxlength="70" ${t.local?'list="lpls"':""} placeholder="Full name"></div>${t.local?`<datalist id="lpls">${plOptions()}</datalist>`:""}
+     <div style="flex:2 1 200px"><label>Player name</label><input name="name" required maxlength="70" ${t.local?'class="pp"':""} placeholder="Start typing a name"></div>${t.local?`<datalist id="lpls">${plOptions()}</datalist>`:""}
      <div style="flex:1 1 140px"><label>Role</label><select name="role"><option>Batter</option><option>Bowler</option><option>All-rounder</option><option>Wicket-keeper</option></select></div>
      <button class="btn">Add</button></form></div>`:""}
   <div class="card"><h3>${jk?(se==="all"?"All players":"Players · "+esc(se)):"Squad"}</h3>${ps.length?ps.map(p=>{const s=st[p.id];return`<div class="pl"><div><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span> <span class="small muted">· ${esc(p.role||"")}${t.local?` · <span style="font-family:ui-monospace,monospace">${pcode(p.id)}</span>`:""}</span></div>
@@ -612,7 +659,8 @@ function vTeam(app,r){
     $("#et").onclick=()=>teamForm(t);
     if($("#dt"))$("#dt").onclick=e=>{if(ms.length){toast("Team has matches, can't delete");return;}if(e.target.dataset.c!=="1"){e.target.dataset.c="1";e.target.textContent="Tap again to delete";return;}
       delete S.teams[t.id];rebuildPlayers();removeDoc("teams/"+t.id);location.hash=t.local?"local":"teams";};
-    $("#ap").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const q=t.local?parsePl(f.get("name")):{name:String(f.get("name")).trim().replace(/\s+/g," "),id:null};const name=q.name;if(!name)return;
+    {const ai=document.querySelector("#ap input.pp");if(ai)ppWrap(ai);}
+    $("#ap").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const q=t.local?resolvePl(e.target.elements.name):{name:String(f.get("name")).trim().replace(/\s+/g," "),id:null};const name=q.name;if(!name)return;if(q.amb){toast(`${q.amb} players are called ${name}. Pick the right one from the list.`);return;}
       const t=S.teams[r.id];if(!t)return;if(q.id&&(t.players||[]).some(x=>x.id===q.id)){toast("Already in the squad");return;}t.players=[...(t.players||[]),{id:q.id||uid(),name,role:String(f.get("role"))}];rebuildPlayers();persist("teams/"+t.id,t);render();setTimeout(()=>{const i=document.querySelector("#ap input");i&&i.focus();},0);};
     app.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const used=Object.values(S.matches).some(m=>Object.values(m.xi||{}).some(x=>x.includes(b.dataset.rm)));
       if(used){toast("Player has match records, can't remove");return;}
@@ -751,7 +799,7 @@ function vPlayerId(app){
      <div class="small muted" style="font-weight:700;letter-spacing:.06em">YOUR CRICINSIDER PLAYER ID</div>
      <div style="font-size:40px;font-weight:800;font-family:ui-monospace,monospace;margin:10px 0">${pcode(done)}</div>
      <div style="font-size:20px;font-weight:700">${esc(p.name)}</div><div class="small muted">${esc(p.role||"")}${(p.teams||[]).length?" · "+esc(p.teams.map(tn).join(", ")):""}${p.district?" · "+esc(p.district):""}</div>
-     <p style="margin:16px auto 0;max-width:460px">Give this ID to the scorer whenever you play. When they type your name, pick <b>${esc(p.name)} · ${pcode(done)}</b> from the list, and every run and wicket goes into this one profile, whichever club you play for.</p>
+     <p style="margin:16px auto 0;max-width:460px">You're in. Whenever you play, the scorer just types your name and you pop up with your club, so every run and wicket goes into this one profile, whichever team you play for. If another player has the same name, your ID tells you apart.</p>
      <div class="row" style="justify-content:center;margin-top:16px"><button class="btn" id="pidcp">Copy my ID</button><button class="btn g" data-p="${esc(done)}">View my profile</button><button class="btn g" id="pidnew">Get another ID</button></div></div>`;
     $("#pidcp").onclick=async()=>{try{await navigator.clipboard.writeText(`${p.name} · ${pcode(done)}`);toast("Copied");}catch(e){toast(pcode(done));}};
     $("#pidnew").onclick=()=>{S.pidDone=null;render();};bindP(app);return;}
@@ -811,24 +859,25 @@ function vRegister(app,r){
    </div>
    <label style="margin-top:14px">Players <span class="muted small">(add at least 11)</span></label><div id="rpl"></div>
    <button type="button" class="btn g sm" id="radd" style="margin-top:8px">+ Add player</button> <span class="small muted" id="rpc"></span>
-   <datalist id="lpls">${plOptions()}</datalist><p class="small muted" style="margin:8px 0 0">Tip: if a player already has a CricInsider Player ID (e.g. JK-7F3K2), pick them from the suggestions so all their stats stay in one profile. <a href="#playerid">Get a Player ID</a></p>
+   <p class="small muted" style="margin:8px 0 0">Start typing a name: players who already play on CricInsider pop up, so their stats stay in one profile. A ✓ means they're linked.</p>
    <p class="small muted" style="margin:14px 0 0">Everything above is shown publicly on the club page. Don't add phone numbers or addresses.</p>
    <div class="row" style="margin-top:14px"><button class="btn" id="rgo" style="font-size:16px;padding:14px 22px">${ex?"Save changes":"✓ Register club"}</button><a class="btn g" href="#local" style="text-decoration:none">Cancel</a></div>
    <div class="small" style="color:var(--bad);margin-top:8px" id="rerr"></div></form></div>`;
   const F=$("#rf"),f=F.elements,box=$("#rpl");
   const count=()=>{const n=[...box.querySelectorAll("input")].filter(x=>x.value.trim()).length;$("#rpc").textContent=n?n+" player"+(n===1?"":"s"):"";};
-  const addRow=(name="",role="Batter",focus=false,id="")=>{const row=document.createElement("div");row.className="prow";row.dataset.id=id;
-    row.innerHTML=`<input maxlength="70" list="lpls" placeholder="Player ${box.children.length+1} name or ID" value="${esc(name)}"><select>${ROLES.map(x=>`<option ${x===role?"selected":""}>${x}</option>`).join("")}</select><button type="button" class="x" title="Remove">✕</button>`;
+  const addRow=(name="",role="Batter",focus=false,id="")=>{const row=document.createElement("div");row.className="prow";
+    row.innerHTML=`<input maxlength="70" class="pp" ${id?`data-pid="${esc(id)}"`:""} placeholder="Player ${box.children.length+1} name" value="${esc(name)}"><select>${ROLES.map(x=>`<option ${x===role?"selected":""}>${x}</option>`).join("")}</select><button type="button" class="x" title="Remove">✕</button>`;
     const inp=row.querySelector("input");
     inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(inp.value.trim())addRow("","Batter",true);}});
     inp.addEventListener("input",count);
     row.querySelector(".x").onclick=()=>{row.remove();if(!box.children.length)addRow();count();};
-    box.appendChild(row);if(focus)inp.focus();count();};
-  if(ex&&(ex.players||[]).length)ex.players.forEach(p=>addRow(p.name+" · "+pcode(p.id),ROLES.includes(p.role)?p.role:"Batter",false,p.id));else for(let k=0;k<11;k++)addRow();
+    box.appendChild(row);ppWrap(inp);if(focus)inp.focus();count();};
+  if(ex&&(ex.players||[]).length)ex.players.forEach(p=>addRow(p.name,ROLES.includes(p.role)?p.role:"Batter",false,p.id));else for(let k=0;k<11;k++)addRow();
   $("#radd").onclick=()=>addRow("","Batter",true);
   F.onsubmit=async e=>{e.preventDefault();const err=$("#rerr");err.textContent="";
     const name=f.name.value.trim().replace(/\s+/g," ");const district=f.district.value;
-    const rows=[...box.querySelectorAll(".prow")].map(r=>{const q=parsePl(r.querySelector("input").value);return{id:q.id||r.dataset.id,name:q.name,role:r.querySelector("select").value};}).filter(p=>p.name);
+    const rows=[...box.querySelectorAll(".prow")].map(r=>{const q=resolvePl(r.querySelector("input"));return{id:q.id,amb:q.amb,name:q.name,role:r.querySelector("select").value};}).filter(p=>p.name);
+    {const a=rows.find(p=>p.amb);if(a){err.textContent=`${a.amb} players are called ${a.name}. Tap the name and pick the right one from the list.`;return;}}
     const seen=new Set();const players=rows.filter(p=>{const k=p.id||p.name.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
     if(!name){err.textContent="Enter your club's name.";return;}
     if(!district){err.textContent="Choose your district.";return;}
@@ -868,7 +917,6 @@ function vQuick(app){
     <div><label>Ground</label><input name="venue" maxlength="60" placeholder="optional"></div>
     <div><label>Tournament</label><input name="tour" list="ltr" maxlength="60" placeholder="Friendly"></div>
    </div>
-   <datalist id="lpls">${plOptions()}</datalist>
    <datalist id="ltl">${lts.map(t=>`<option>${esc(t.name)}</option>`).join("")}</datalist>
    <datalist id="ldl">${DIS.map(d=>`<option>${esc(d)}</option>`).join("")}</datalist>
    <datalist id="ltr">${[...new Set(Object.values(S.matches).filter(m=>m.local&&m.tournament).map(m=>m.tournament))].map(t=>`<option>${esc(t)}</option>`).join("")}</datalist>
@@ -878,27 +926,28 @@ function vQuick(app){
   const ROLES=["Batter","Bowler","All-rounder","Wicket-keeper"];
   const find=name=>lts.find(t=>t.name.trim().toLowerCase()===String(name||"").trim().toLowerCase());
   const count=i=>{const n=[...$("#pl"+i).querySelectorAll("input")].filter(x=>x.value.trim()).length;$("#pc"+i).textContent=n?n+" player"+(n===1?"":"s"):"";};
-  const addRow=(i,name="",role="Batter",focus=false)=>{const box=$("#pl"+i);const row=document.createElement("div");row.className="prow";
-    row.innerHTML=`<input maxlength="70" list="lpls" placeholder="Player ${box.children.length+1} name or ID" value="${esc(name)}"><select>${ROLES.map(r=>`<option ${r===role?"selected":""}>${r}</option>`).join("")}</select><button type="button" class="x" title="Remove">×</button>`;
+  const addRow=(i,name="",role="Batter",focus=false,id="")=>{const box=$("#pl"+i);const row=document.createElement("div");row.className="prow";
+    row.innerHTML=`<input maxlength="70" class="pp" ${id?`data-pid="${esc(id)}"`:""} placeholder="Player ${box.children.length+1} name" value="${esc(name)}"><select>${ROLES.map(r=>`<option ${r===role?"selected":""}>${r}</option>`).join("")}</select><button type="button" class="x" title="Remove">×</button>`;
     const inp=row.querySelector("input");
     inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(inp.value.trim())addRow(i,"","Batter",true);}});
     inp.addEventListener("input",()=>count(i));
     row.querySelector(".x").onclick=()=>{row.remove();if(!box.children.length)addRow(i);count(i);};
-    box.appendChild(row);if(focus)inp.focus();count(i);};
+    box.appendChild(row);ppWrap(inp);if(focus)inp.focus();count(i);};
   [0,1].forEach(i=>{for(let k=0;k<3;k++)addRow(i);
     F.querySelector(`[data-add="${i}"]`).onclick=()=>addRow(i,"","Batter",true);
     const fill=()=>{const t=find(f["t"+i].value);const h=$("#h"+i);const box=$("#pl"+i);
       const empty=![...box.querySelectorAll("input")].some(x=>x.value.trim());
-      if(t){if(empty&&(t.players||[]).length){box.innerHTML="";(t.players||[]).forEach(p=>addRow(i,p.name+" · "+pcode(p.id),ROLES.includes(p.role)?p.role:"Batter"));}
+      if(t){if(empty&&(t.players||[]).length){box.innerHTML="";(t.players||[]).forEach(p=>addRow(i,p.name,ROLES.includes(p.role)?p.role:"Batter",false,p.id));}
         if(t.district&&!f.dist.value)f.dist.value=t.district;h.textContent="Saved team: players filled in. Remove anyone not playing, or add more.";}
       else h.textContent=f["t"+i].value.trim()?"New team: it will be saved for next time.":"";
       f.tw.options[i].text=f["t"+i].value.trim()||("Team "+(i+1));};
     f["t"+i].addEventListener("change",fill);f["t"+i].addEventListener("input",()=>{f.tw.options[i].text=f["t"+i].value.trim()||("Team "+(i+1));});});
   F.onsubmit=async e=>{e.preventDefault();const err=$("#qerr");err.textContent="";
     const names=[0,1].map(i=>f["t"+i].value.trim().replace(/\s+/g," "));
-    const lists=[0,1].map(i=>[...new Map([...$("#pl"+i).querySelectorAll(".prow")].map(r=>({...parsePl(r.querySelector("input").value),role:r.querySelector("select").value})).filter(p=>p.name).map(p=>[p.id||p.name.toLowerCase(),p])).values()]);
+    const lists=[0,1].map(i=>[...new Map([...$("#pl"+i).querySelectorAll(".prow")].map(r=>({...resolvePl(r.querySelector("input")),role:r.querySelector("select").value})).filter(p=>p.name).map(p=>[p.id||p.name.toLowerCase(),p])).values()]);
     if(!names[0]||!names[1]){err.textContent="Enter both team names.";return;}
     if(names[0].toLowerCase()===names[1].toLowerCase()){err.textContent="The two teams need different names.";return;}
+    {const a=[...lists[0],...lists[1]].find(p=>p.amb);if(a){err.textContent=`${a.amb} players are called ${a.name}. Tap the name and pick the right one from the list.`;return;}}
     {const both=lists[0].filter(p=>p.id&&lists[1].some(q=>q.id===p.id));if(both.length){err.textContent=`${both.map(p=>p.name).join(", ")} can't play for both teams. Remove them from one side.`;return;}}
     if(lists[0].length<2||lists[1].length<2){err.textContent="Each team needs at least 2 players. Type their names in the player boxes.";return;}
     const btn=$("#qgo");btn.disabled=true;btn.textContent="Starting…";
