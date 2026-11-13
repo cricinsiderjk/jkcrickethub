@@ -452,8 +452,9 @@ function vSquads(app){
   bindP(app);
 }
 function vTeams(app){
-  const ts=Object.values(S.teams).filter(t=>!t.local).sort((a,b)=>a.name.localeCompare(b.name));
-  app.innerHTML=`<div class="sec dom">BCCI domestic</div><div class="row sp" style="margin-bottom:12px"><h2 style="margin:0">Teams</h2>${S.canEdit?'<button class="btn" id="nt">+ New team</button>':""}</div>
+  const JK_ORDER=["t-jk","t-jk-u23","t-jk-u19","t-jk-u16","t-jkw","t-jkw-u23","t-jkw-u19","t-jkw-u15"];const ord=id=>{const i=JK_ORDER.indexOf(id);return i<0?99:i;};
+  const ts=Object.values(S.teams).filter(t=>!t.local&&/^t-jkw?(-|$)/.test(t.id)).sort((a,b)=>ord(a.id)-ord(b.id)||a.name.localeCompare(b.name));
+  app.innerHTML=`<div class="sec dom">BCCI domestic</div><div class="row sp" style="margin-bottom:12px"><h2 style="margin:0">J&amp;K teams</h2>${S.canEdit?'<button class="btn" id="nt">+ New team</button>':""}</div>
   ${ts.length?`<div class="grid">${ts.map(t=>`<div class="card mc" data-go="team-${esc(t.id)}" style="margin:0"><div class="row sp"><b style="font-size:16px">${esc(t.name)}</b><span class="tag">${esc(t.short||"")}</span></div><div class="small muted" style="margin-top:6px">${esc(t.district||"J&K")} · ${(t.players||[]).length} players</div></div>`).join("")}</div>`:`<div class="card empty">No teams yet.</div>`}`;
   bindGo(app);
   const nt=$("#nt");if(nt)nt.onclick=()=>teamForm();
