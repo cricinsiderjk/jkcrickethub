@@ -113,6 +113,7 @@ nav,.tabs{scrollbar-width:none;-ms-overflow-style:none}nav::-webkit-scrollbar,.t
 #app.fade{animation:fi .22s ease}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 h2{font-size:19px}
+.ci{display:inline-block;text-decoration:none}.btn.ci:not(.g){background:#c81e1e}
 .more{display:block;width:100%;margin-top:12px}
 @media (max-width:560px){.ng{display:none}.score{font-size:15.5px}.brand small{display:none}.hwrap{padding-top:10px;gap:4px}main{padding:12px 12px 50px}.grid{gap:10px}.card{padding:14px}nav a{padding:10px 11px}}
 @media (prefers-reduced-motion:reduce){#app.fade{animation:none}.mc:hover{transform:none}}
@@ -400,6 +401,7 @@ function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return
 window.addEventListener("hashchange",()=>{S.mTab="live";if(location.hash.startsWith("#tour-")&&location.hash!==S._lastTour){S.tSeason=undefined;S._lastTour=location.hash;}if(location.hash!=="#newmatch")S.prefMatch=null;if(!location.hash.startsWith("#tour-"))S.tTab="matches";render();window.scrollTo(0,0);});
 
 /* ---------- views ---------- */
+setInterval(()=>{try{if(!document.hidden&&Object.values(S.matches).some(m=>m.start&&!m.local&&m.status!=="done"&&Math.abs(Date.now()-Date.parse(m.start))<5*864e5)&&!document.querySelector(".modal.on")&&!document.activeElement.matches("input,select,textarea"))render();}catch(e){}},60000);
 function render(){
   const r=route();
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(r.v==="newmatch"?"local":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"home"):r.v==="team"?(S.teams[r.id]&&S.teams[r.id].local?"local":"teams"):r.v==="tour"?"tournaments":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"home"):r.v)));
@@ -411,18 +413,24 @@ function render(){
   V(app,r);
 }
 
+const mDur=m=>(m.overs===0?4.4*24:m.overs>=50?9.5:4.5)*3600e3;
+const pending=m=>!m.local&&m.status==="upcoming"&&m.start&&Date.now()>=Date.parse(m.start)+mDur(m);
+function inPlay(m){if(m.local||m.status==="done"||!m.start)return false;const st=Date.parse(m.start);if(isNaN(st))return false;const dur=(m.overs===0?4.4*24:m.overs>=50?9.5:4.5)*3600e3;const n=Date.now();return n>=st&&n<st+dur;}
+const ciBtn=(m,big)=>m.cricinfo?`<a class="btn ${big?"":"g"} ci" href="${esc(m.cricinfo)}" target="_blank" rel="noopener">${big?"🔴 Live scorecard on ESPNcricinfo":inPlay(m)?"🔴 Live score on ESPNcricinfo":m.status==="done"?"Full scorecard on ESPNcricinfo ↗":"Follow live on ESPNcricinfo ↗"}</a>`:"";
 function matchCard(m){
-  const live=m.status==="live",up=m.status==="upcoming";
+  const ip=inPlay(m);const live=m.status==="live"||ip,up=m.status==="upcoming"&&!ip;
   let sub="";
-  if(up)sub=`<div class="small" style="margin-top:6px">🕒 ${esc(ftime(m.start)||fdate(m.date))}${m.venue?` · ${esc(m.venue)}`:""}</div>`;
+  if(ip&&m.status!=="live")sub=`<div class="small" style="margin-top:6px;font-weight:700;color:#c81e1e">Live now${m.cricinfo?" · tap for the live scorecard":""}</div>`;else 
+  if(up&&pending(m))sub=`<div class="small muted" style="margin-top:6px">Match finished · result is added overnight${m.cricinfo?" (tap for the scorecard on ESPNcricinfo)":""}</div>`;
+  else if(up)sub=`<div class="small" style="margin-top:6px">🕒 ${esc(ftime(m.start)||fdate(m.date))}${m.venue?` · ${esc(m.venue)}`:""}</div>`;
   else if(live&&m.innings&&m.innings.length===2&&!curInn(m).closed){const c=calc(curInn(m));const need=target(m)-c.runs;const left=m.overs*6-c.legal;sub=`<div class="small" style="margin-top:6px">${esc(tsn(curInn(m).bat))} need <b>${need}</b> from ${left} ball${left===1?"":"s"}</div>`;}
   else if(m.result)sub=`<div class="small res" style="margin-top:6px">${esc(m.result)}</div>`;
   else if(live&&m.toss)sub=`<div class="small muted" style="margin-top:6px">${esc(tsn(m.toss.w))} won the toss, chose to ${esc(m.toss.d)}</div>`;
   const ck=m.local?"":catOf(m.tournament);const cc=m.local?"#b7860b":(CAT_CLR[ck]||"#687280");
   const dt=(()=>{const x=new Date((m.date||"")+"T00:00:00");return isNaN(x)?"":x.toLocaleDateString(undefined,{day:"numeric",month:"short",year:x.getFullYear()===new Date().getFullYear()?undefined:"numeric"});})();
   return`<div class="card mc" data-go="match-${esc(m.id)}" data-cat style="margin:0;--cc:${cc}">
-   <div class="mh"><span class="tn"><span class="cat">${m.local?"Local club":esc(CAT_SH[ck]||"Domestic")}</span>${esc(m.tournament||"Friendly")} · ${esc(dt)}</span>${live?'<span class="tag live">Live</span>':up?'<span class="tag">Upcoming</span>':'<span class="tag">Result</span>'}</div>
-   ${up?`<div class="tline" style="margin-top:10px"><b>${esc(tn(m.teamA))}</b><span class="muted small">vs</span><b style="text-align:right">${esc(tn(m.teamB))}</b></div>`:`<div class="tline" style="margin-top:10px"><b>${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
+   <div class="mh"><span class="tn"><span class="cat">${m.local?"Local club":esc(CAT_SH[ck]||"Domestic")}</span>${esc(m.tournament||"Friendly")} · ${esc(dt)}</span>${live?'<span class="tag live">Live</span>':up?(pending(m)?'<span class="tag">Result soon</span>':'<span class="tag">Upcoming</span>'):'<span class="tag">Result</span>'}</div>
+   ${(up||ip&&m.status!=="live")?`<div class="tline" style="margin-top:10px"><b>${esc(tn(m.teamA))}</b><span class="muted small">vs</span><b style="text-align:right">${esc(tn(m.teamB))}</b></div>`:`<div class="tline" style="margin-top:10px"><b>${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
    <div class="tline"><b>${esc(tn(m.teamB))}</b><span class="score">${teamScore(m,m.teamB)}</span></div>`}${sub}</div>`;
 }
 function bindGo(root){root.querySelectorAll("[data-go]").forEach(e=>e.onclick=()=>location.hash=e.dataset.go);}
@@ -430,8 +438,8 @@ function bindGo(root){root.querySelectorAll("[data-go]").forEach(e=>e.onclick=()
 function vHome(app){
   const hc=S.hCat||"";
   const all=Object.values(S.matches).filter(m=>!m.local&&(!hc||catOf(m.tournament)===hc)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""));
-  const live=all.filter(m=>m.status==="live"),done=all.filter(m=>m.status==="done");
-  const up=all.filter(m=>m.status==="upcoming").sort((a,b)=>(a.start||a.date||"").localeCompare(b.start||b.date||""));
+  const live=all.filter(m=>m.status==="live"||inPlay(m)),done=all.filter(m=>m.status==="done");
+  const up=all.filter(m=>m.status==="upcoming"&&!inPlay(m)).sort((a,b)=>(a.start||a.date||"").localeCompare(b.start||b.date||""));
   const lc=hc||"Senior Men";const st=Object.values(stats({t:"cat:"+lc,s:CUR_SEASON}));
   const topR=st.filter(p=>p.r>0).sort((a,b)=>b.r-a.r).slice(0,5),topW=st.filter(p=>p.w>0).sort((a,b)=>b.w-a.w||a.br-b.br).slice(0,5);
   const ready=Object.values(S.teams).filter(t=>(t.players||[]).length>=2).length>=2;
@@ -748,7 +756,9 @@ function vUpcoming(app,m){
   app.innerHTML=`<div class="card"><div class="row sp"><span class="small muted"><a href="#home">Matches</a> / <a href="#tour-${esc(slug(m.tournament))}">${esc(m.tournament)}</a>${m.matchNo?" · "+esc(m.matchNo):""}</span><span class="tag">Upcoming</span></div>
    <div class="row sp" style="margin-top:14px;justify-content:center;gap:18px;text-align:center"><b style="font-size:20px">${esc(tn(m.teamA))}</b><span class="muted">vs</span><b style="font-size:20px">${esc(tn(m.teamB))}</b></div>
    <div style="text-align:center;margin-top:12px"><div style="font-weight:700">🕒 ${esc(ftime(m.start)||fdate(m.date))}</div><div class="small muted" style="margin-top:4px">${esc(m.venue||"Venue TBA")} · ${m.overs||20} overs a side · shown in your local time</div></div>
-   <p class="small muted" style="text-align:center;margin:14px 0 0">The full scorecard and player stats are added here after the match.</p></div>
+   ${inPlay(m)?`<div style="text-align:center;margin-top:14px"><span class="tag live">Live now</span></div>`:""}
+   ${m.cricinfo?`<div style="text-align:center;margin-top:14px">${ciBtn(m,inPlay(m))}</div>`:""}
+   <p class="small muted" style="text-align:center;margin:14px 0 0">${m.cricinfo?"Ball-by-ball live score is on ESPNcricinfo. ":""}The full scorecard and player stats are added here after the match.</p></div>
   ${sq.length?`<div class="card"><h3>J&amp;K squad</h3>${sq.map(id=>`<div class="pl"><span class="link" data-p="${esc(id)}" style="font-weight:600">${esc(pn(id))}</span><span class="small muted">${esc((S.players[id]||{}).role||"")}</span></div>`).join("")}${m.note?`<p class="small muted" style="margin:8px 0 0">${esc(m.note)}</p>`:""}</div>`:""}
   ${m.src?`<p class="small muted">Fixture source: <a href="${esc(m.src)}" target="_blank" rel="noopener">${esc(m.srcName||"BCCI")}</a></p>`:""}`;
   bindP(app);
@@ -768,7 +778,7 @@ function vMatch(app,r){
   const tab=S.mTab;
   app.innerHTML=`<div class="card">
     <div class="row sp"><span class="small muted">${m.local?`<a href="#local">Local cricket</a> / ${esc(m.tournament||"Friendly")}`:`<a href="#home">Matches</a> / <a href="#tour-${esc(slug(m.tournament))}">${esc(m.tournament)}</a>`} · ${fdate(m.date)}${m.venue?" · "+esc(m.venue):""}${m.overs?` · ${m.overs} overs`:" · Multi-day"}</span><span><span class="tag ${m.local?"loc":"dom"}">${m.local?"Local club":"Domestic"}</span> ${live?'<span class="tag live">Live</span>':'<span class="tag">Result</span>'}</span></div>
-    ${m.local&&m.scorer?`<div class="small muted" style="margin-top:6px">Scored by ${esc(m.scorer)}</div>`:""}${m.src?`<div class="small muted" style="margin-top:6px">Imported scorecard · source: <a href="${esc(m.src)}" target="_blank" rel="noopener">${esc(m.srcName||"match report")}</a></div>`:""}
+    ${m.local&&m.scorer?`<div class="small muted" style="margin-top:6px">Scored by ${esc(m.scorer)}</div>`:""}${m.cricinfo&&!m.local?`<div style="margin-top:10px">${ciBtn(m)}</div>`:""}${m.src?`<div class="small muted" style="margin-top:6px">Imported scorecard · source: <a href="${esc(m.src)}" target="_blank" rel="noopener">${esc(m.srcName||"match report")}</a></div>`:""}
     <div class="tline" style="margin-top:10px"><b style="font-size:16px">${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
     <div class="tline"><b style="font-size:16px">${esc(tn(m.teamB))}</b><span class="score">${teamScore(m,m.teamB)}</span></div>${status}
   </div>
