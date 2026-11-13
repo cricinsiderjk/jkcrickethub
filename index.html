@@ -441,10 +441,10 @@ function vHome(app){
   <div class="tabs" id="hcat" style="margin-bottom:14px"><button data-c="" class="${hc?"":"on"}">All</button>${TCATS.map(c=>`<button data-c="${esc(c.k)}" class="${hc===c.k?"on":""}">${esc(c.k.replace(" Men",""))}</button>`).join("")}</div>
   ${live.length?`<h2>Live now</h2><div class="grid" style="margin-bottom:18px">${live.map(matchCard).join("")}</div>`:""}
   ${up.length?`<h2>Upcoming</h2><div class="grid" style="margin-bottom:18px">${up.slice(0,S.hUp?999:(innerWidth<560?3:4)).map(matchCard).join("")}</div>${!S.hUp&&up.length>(innerWidth<560?3:4)?`<button class="btn g more" id="hup" style="margin:-6px 0 18px">Show all ${up.length} upcoming</button>`:""}`:""}
-  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:18px">
+  ${lc==="Senior Men"?`  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:18px">
    <div class="card" style="margin:0"><h3>🏆 Most runs <span class="small muted">· ${esc(lc)} ${CUR_SEASON}</span></h3>${topR.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.r}</span></div>`).join("")||'<div class="muted small">No runs yet</div>'}</div>
    <div class="card" style="margin:0"><h3>🎯 Most wickets <span class="small muted">· ${esc(lc)} ${CUR_SEASON}</span></h3>${topW.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.w}</span></div>`).join("")||'<div class="muted small">No wickets yet</div>'}</div>
-  </div>
+  </div>`:""}
   <h2>${live.length?"Recent results":"Matches"}</h2>
   ${done.length?`<div class="grid">${done.slice(0,S.hAll?999:6).map(matchCard).join("")}</div>${done.length>6&&!S.hAll?`<button class="btn g more" id="hmore">Show all ${done.length} results</button>`:""}`:`<div class="card empty">${all.length?"No completed matches yet.":S.canEdit?"No matches yet. Create teams, then start your first match.":"No matches yet. Check back soon."}</div>`}`;
   bindGo(app);bindP(app);
@@ -1024,12 +1024,12 @@ function vTour(app,r){
   const seasons=[...new Set([CUR_SEASON,...all.map(m=>seasonOf(m.date)).filter(Boolean)])].sort().reverse();
   if(S.tSeason===undefined||(S.tSeason!==""&&!seasons.includes(S.tSeason)))S.tSeason=CUR_SEASON;
   const ms=all.filter(m=>!S.tSeason||seasonOf(m.date)===S.tSeason).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""));
-  const tab=S.tTab||"matches";
+  let tab=S.tTab||"matches";if(tab==="stats"&&catOf(t.n)&&catOf(t.n)!=="Senior Men")tab="matches";
   app.innerHTML=`<div class="card"><div class="small muted"><a href="#tournaments">Tournaments</a> /</div>
    <div class="row sp" style="margin-top:6px"><div class="row"><span style="font-size:30px">${t.i}</span><div><h2 style="margin:0;font-size:22px">${esc(t.n)}</h2><div class="small muted">${esc(t.f)} · ${esc(t.d)}</div><div style="font-weight:700;margin-top:4px">${S.tSeason?esc(S.tSeason)+" season":"All seasons"}</div></div></div>
 </div>
    <div style="margin-top:12px;max-width:220px"><label>Season</label><select id="tse">${seasons.map(x=>`<option value="${x}" ${S.tSeason===x?"selected":""}>${x}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="" ${S.tSeason===""?"selected":""}>All seasons</option></select></div></div>
-  <div class="tabs"><button data-t="matches" class="${tab==="matches"?"on":""}">Matches</button><button data-t="table" class="${tab==="table"?"on":""}">${ms.some(m=>!isJKid(m.teamA)&&!isJKid(m.teamB))?"Points table":"J&amp;K record"}</button><button data-t="stats" class="${tab==="stats"?"on":""}">Top performers</button></div>
+  <div class="tabs"><button data-t="matches" class="${tab==="matches"?"on":""}">Matches</button><button data-t="table" class="${tab==="table"?"on":""}">${ms.some(m=>!isJKid(m.teamA)&&!isJKid(m.teamB))?"Points table":"J&amp;K record"}</button>${catOf(t.n)==="Senior Men"||!catOf(t.n)?`<button data-t="stats" class="${tab==="stats"?"on":""}">Top performers</button>`:""}</div>
   <div id="tb"></div>`;
   const tb=$("#tb");
   if(!ms.length)tb.innerHTML=`<div class="card empty">No ${esc(t.n)} matches ${S.tSeason?"in the "+esc(S.tSeason)+" season ":""}yet.${S.tSeason===CUR_SEASON?" Fixtures and the J&amp;K squad appear here automatically once they're announced.":""}</div>`;
