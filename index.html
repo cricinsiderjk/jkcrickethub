@@ -100,6 +100,9 @@ th.l,td.l{text-align:left;white-space:normal}
 .pp-nm{font-weight:600}.pp-sub{font-size:12px;opacity:.7}.pp-new .pp-av{background:#888}
 input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90deg,transparent calc(100% - 26px),transparent 0),none}
 .pp-wrap{position:relative;flex:1 1 auto;display:flex}.pp-wrap input{flex:1 1 auto;width:100%;padding-right:26px}.pp-tick{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#2a9d5c;font-weight:700;pointer-events:none}
+.post{margin:0}.post .pt{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#e3f3ec;color:#0e5c48}
+.post .pd{white-space:pre-wrap;margin:8px 0 0;line-height:1.45}.post.pend{border:2px dashed #f2a900}
+.dirp{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line,#e5e5e5)}.dirp:last-child{border-bottom:0}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -144,6 +147,7 @@ h2{font-size:19px}
     <a href="#squads" data-v="squads">Squads</a>
     <span class="nsep"></span>
     <a href="#local" data-v="local" class="nloc">🏏 Local club cricket</a>
+    <a href="#community" data-v="community" class="nloc">👥 Community</a>
   </nav>
 </div></header>
 <main id="app"><div class="empty">Loading…</div></main>
@@ -193,7 +197,7 @@ h2{font-size:19px}
       A.uid=u?u.uid:null;A.isAnon=!u||u.isAnonymous;A.name=u&&!u.isAnonymous?(u.displayName||u.email||""):"";A.email=u&&!u.isAnonymous?(u.email||""):"";
       A.isAdmin=false;A.canScore=!!u;
       if(u&&!u.isAnonymous){try{await fs.collection("meta").doc("admin").get();A.isAdmin=true;}catch(e){A.isAdmin=false;}}
-      A.ready=true;A._emit();
+      A.ready=true;A._emit();window.POSTS&&POSTS.watch();
     });
   }
   /* Scorers need no login: the first time they start a match, this device gets a silent anonymous ID.
@@ -203,6 +207,19 @@ h2{font-size:19px}
   A.signIn=async()=>{const p=new firebase.auth.GoogleAuthProvider();
     try{await auth.signInWithPopup(p);}catch(e){if(e&&(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment"))await auth.signInWithRedirect(p);else throw e;}};
   A.signOut=()=>auth.signOut();
+  /* Community noticeboard: anyone can send a post; it stays hidden until the admin approves it. */
+  const P=window.POSTS={q:{},items:{},ready:!A.enabled,err:false,_u:[],_l:[],onChange(f){this._l.push(f);},
+    _emit(){const all={};for(const t of ["pub","mine","all"])Object.assign(all,this.q[t]||{});this.items=all;this._l.forEach(f=>{try{f();}catch(e){console.error(e);}});}};
+  P.watch=()=>{P._u.forEach(u=>{try{u();}catch(e){}});P._u=[];P.q={};if(!fs)return;const col=()=>fs.collection("localPosts");
+    const add=(q,tag)=>P._u.push(q.onSnapshot(sn=>{const m={};sn.forEach(d=>{m[d.id]=Object.assign({},d.data(),{id:d.id});});P.q[tag]=m;P.ready=true;P.err=false;P._emit();},
+      e=>{console.warn("posts",e);P.ready=true;if(tag!=="mine")P.err=true;P._emit();}));
+    if(A.isAdmin)add(col(),"all");else{add(col().where("status","==","approved"),"pub");if(A.uid)add(col().where("createdBy","==",A.uid),"mine");}};
+  P.add=async d=>{await A.ensure();const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    await fs.collection("localPosts").doc(id).set(Object.assign({},d,{status:"pending",createdBy:A.uid,createdAt:new Date().toISOString()}));
+    if(!P._u.length||!P.q.mine)P.watch();return id;};
+  P.setStatus=(id,st)=>fs.collection("localPosts").doc(id).update({status:st});
+  P.remove=id=>fs.collection("localPosts").doc(id).delete();
+  if(A.enabled&&!auth.currentUser)setTimeout(()=>{if(!P._u.length)P.watch();},0);
 })();
 </script>
 <script>
@@ -463,7 +480,7 @@ function closeModal(){$("#modal").classList.remove("on");$("#sheet").innerHTML="
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
 
 /* ---------- routing ---------- */
-function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};if(h==="players")return{v:"stats"};if(h==="playerid")return{v:"playerid"};if(h.startsWith("register-"))return{v:"register",id:h.slice(9)};return{v:["leaders","stats","teams","squads","newmatch","register","tournaments","local"].includes(h)?h:"home"};}
+function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};if(h==="players")return{v:"stats"};if(h==="playerid")return{v:"playerid"};if(h.startsWith("register-"))return{v:"register",id:h.slice(9)};return{v:["leaders","stats","teams","squads","newmatch","register","tournaments","local","community"].includes(h)?h:"home"};}
 window.addEventListener("hashchange",()=>{S.mTab="live";try{if($("#modal").classList.contains("on"))closeModal();}catch(e){}if(location.hash.startsWith("#tour-")&&location.hash!==S._lastTour){S.tSeason=undefined;S._lastTour=location.hash;}if(location.hash!=="#newmatch")S.prefMatch=null;if(!location.hash.startsWith("#tour-"))S.tTab="matches";render();window.scrollTo(0,0);});
 
 /* ---------- views ---------- */
@@ -510,7 +527,7 @@ function render(){
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
   if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
   const hk=location.hash;if(S._lh!==hk){S._lh=hk;app.classList.remove("fade");void app.offsetWidth;app.classList.add("fade");if(S._booted)window.scrollTo(0,0);S._booted=1;}
-  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:()=>{location.hash="local";},tournaments:vTours,tour:vTour,local:vLocal}[r.v];
+  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:()=>{location.hash="local";},tournaments:vTours,tour:vTour,local:vLocal,community:vCommunity}[r.v];
   V(app,r);
 }
 
@@ -1150,6 +1167,94 @@ function adminLink(){
   if(AUTH.isAdmin)return`<p class="small muted" style="margin-top:18px">Signed in as admin (${esc(AUTH.email)}) · you can edit or delete any local match. <a href="#local" id="sout">Sign out</a></p>`;
   return`<p class="small muted" style="margin-top:18px"><a href="#local" id="sin">Admin sign-in</a></p>`;
 }
+/* ----- Community: noticeboard (approved posts) + clubs & players directory ----- */
+const PTYPES=[["match","🤝 Need an opponent"],["club","🔎 Player looking for a club"],["players","📣 Club needs players"],["trials","🏟️ Trials"],["tourney","🏆 Tournament"],["ground","📍 Ground available"],["other","💬 Other"]];
+const ptype=k=>(PTYPES.find(x=>x[0]===k)||PTYPES[PTYPES.length-1])[1];
+const postExpired=p=>{const end=p.date?Date.parse(p.date+"T23:59:59")+864e5:Date.parse(p.createdAt||0)+30*864e5;return Date.now()>end;};
+const ago=iso=>{const d=(Date.now()-Date.parse(iso))/6e4;if(!(d>=0))return"";if(d<60)return Math.max(1,Math.round(d))+" min ago";if(d<1440)return Math.round(d/60)+" h ago";const n=Math.round(d/1440);return n+" day"+(n===1?"":"s")+" ago";};
+const igLink=h=>{h=String(h||"").trim().replace(/^@/,"").replace(/^https?:\/\/(www\.)?instagram\.com\//i,"").replace(/[/?#].*$/,"");return /^[A-Za-z0-9._]{1,30}$/.test(h)?h:"";};
+if(window.POSTS)POSTS.onChange(()=>{if(route().v!=="community")return;const a=document.activeElement;if(a&&$("#app").contains(a)&&a.matches("input,select,textarea"))return;render();});
+function postCard(p){const ig=igLink(p.contact);const mine=AUTH.uid&&p.createdBy===AUTH.uid;const pend=p.status!=="approved";
+  return`<div class="card post${pend?" pend":""}"><div class="row sp" style="align-items:flex-start"><span class="pt">${esc(ptype(p.type))}</span><span class="small muted">${esc(ago(p.createdAt))}</span></div>
+   <h3 style="margin:10px 0 2px;font-size:17px">${esc(p.title)}</h3><div class="small muted">📍 ${esc(p.district||"J&K")}${p.date?" · 📅 "+fdate(p.date):""}${p.club?" · "+esc(p.club):""}</div>
+   ${p.details?`<p class="pd">${esc(p.details)}</p>`:""}
+   <div class="row" style="margin-top:10px;gap:8px;align-items:center">${ig?`<a class="btn sm" href="https://instagram.com/${esc(ig)}" target="_blank" rel="noopener" style="text-decoration:none">📸 Message @${esc(ig)}</a>`:""}
+    ${pend&&!AUTH.isAdmin?`<span class="small" style="color:#a86f00;font-weight:600">⏳ Waiting for approval · only you can see this</span>`:""}
+    ${AUTH.isAdmin&&p.status==="pending"?`<button class="btn sm" data-pa="${esc(p.id)}">✓ Approve</button><button class="btn g sm" data-pr="${esc(p.id)}">Reject</button>`:""}
+    ${AUTH.isAdmin&&p.status==="rejected"?`<span class="small muted">Rejected</span>`:""}
+    ${AUTH.isAdmin||mine?`<button class="btn g sm" data-pdel="${esc(p.id)}">Delete</button>`:""}</div></div>`;}
+function bindAdmin(app){const sin=app.querySelector("#sin");if(sin)sin.onclick=e=>{e.preventDefault();AUTH.signIn().catch(er=>toast("Sign-in failed"+(er&&er.code?": "+er.code:"")));};
+  const so=app.querySelector("#sout");if(so)so.onclick=e=>{e.preventDefault();AUTH.signOut();};}
+function vCommunity(app){
+  const tab=S.cTab||"board";const D=S.cDist||"";
+  const tabs=[["board","📌 Noticeboard"],["dir","📖 Clubs & players"]].map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
+  const posts=Object.values(window.POSTS?POSTS.items:{});
+  const pendN=AUTH.isAdmin?posts.filter(p=>p.status==="pending").length:0;
+  app.innerHTML=`<div class="sec loc">Community</div><div class="card"><h2 style="margin:0;font-size:22px">👥 J&amp;K cricket community</h2>
+    <div class="small muted" style="margin-top:4px">Find an opponent, a club, players, trials or a ground, and browse every club and player in J&amp;K.</div>
+    ${AUTH.enabled?`<div style="margin-top:14px"><button class="btn" id="cnew" style="font-size:16px;padding:14px 22px">＋ Post a notice</button></div>`:""}
+    <div style="margin-top:12px;max-width:220px"><label>District</label><select id="cdist"><option value="">All of J&amp;K</option>${DIS.map(d=>`<option ${D===d?"selected":""}>${esc(d)}</option>`).join("")}</select></div>
+    ${pendN?`<div class="note" style="margin-top:12px"><b>${pendN} post${pendN===1?"":"s"} waiting for your approval.</b> They're at the top of the noticeboard.</div>`:""}</div>
+   <div class="tabs">${tabs}</div><div id="cb"></div>${adminLink()}`;
+  const cb=$("#cb");
+  if(tab==="board"){
+    const T=S.cType||"";
+    const vis=posts.filter(p=>(!D||p.district===D)&&(!T||p.type===T));
+    const pend=vis.filter(p=>p.status==="pending"&&(AUTH.isAdmin||p.createdBy===AUTH.uid)).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+    const live=vis.filter(p=>p.status==="approved"&&!postExpired(p)).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+    const old=AUTH.isAdmin?vis.filter(p=>(p.status==="approved"&&postExpired(p))||p.status==="rejected"):[];
+    cb.innerHTML=`<div class="tabs" id="ctype" style="margin-bottom:12px"><button data-c="" class="${T?"":"on"}">All</button>${PTYPES.map(([k,l])=>`<button data-c="${k}" class="${T===k?"on":""}">${l}</button>`).join("")}</div>
+     ${pend.length?`<h3>${AUTH.isAdmin?"Waiting for approval":"Your posts waiting for approval"}</h3><div class="grid" style="margin-bottom:16px">${pend.map(postCard).join("")}</div>`:""}
+     ${window.POSTS&&!POSTS.ready?`<div class="card empty">Loading…</div>`:window.POSTS&&POSTS.err?`<div class="card empty">The noticeboard isn't available right now. Please try again later.</div>`
+      :live.length?`<div class="grid">${live.map(postCard).join("")}</div>`:`<div class="card empty">No notices${D?" in "+esc(D):""} yet. Looking for a match, a club or players? Tap “Post a notice”.</div>`}
+     ${old.length?`<h3 style="margin-top:18px">Expired or rejected (only you see these)</h3><div class="grid">${old.map(postCard).join("")}</div>`:""}
+     <p class="small muted" style="margin-top:14px">Every post is checked by @cricinsiderjk before it appears. Posts disappear after their date has passed, or after 30 days.</p>`;
+    cb.querySelectorAll("#ctype button").forEach(b=>b.onclick=()=>{S.cType=b.dataset.c;render();});
+    cb.querySelectorAll("[data-pa]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await POSTS.setStatus(b.dataset.pa,"approved");toast("Approved: it's live");}catch(e){toast("Couldn't approve");b.disabled=false;}});
+    cb.querySelectorAll("[data-pr]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await POSTS.setStatus(b.dataset.pr,"rejected");toast("Rejected");}catch(e){toast("Couldn't reject");b.disabled=false;}});
+    cb.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=async()=>{if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="Tap again to delete";return;}b.disabled=true;try{await POSTS.remove(b.dataset.pdel);toast("Deleted");}catch(e){toast("Couldn't delete");b.disabled=false;}});
+  } else {
+    cb.innerHTML=`<div class="card"><input id="cq" placeholder="Search a club or player name" value="${esc(S.cQ||"")}" autocomplete="off"></div><div id="cdir"></div>`;
+    const draw=()=>{const q=(S.cQ||"").trim().toLowerCase();const mc=ppMatches();
+      const clubs=Object.values(S.teams).filter(t=>t.local&&t.kind!=="player"&&(!D||t.district===D)&&(!q||t.name.toLowerCase().includes(q)))
+        .sort((a,b)=>(b.registered?1:0)-(a.registered?1:0)||a.name.localeCompare(b.name));
+      const pls=Object.entries(S.players).filter(([id,p])=>isLocalP(p)).map(([id,p])=>{const ts=(p.teams||[]).map(x=>S.teams[x]).filter(Boolean);return{id,p,ts,dist:p.district||(ts[0]||{}).district||"",n:mc[id]||0};})
+        .filter(x=>(!D||x.dist===D||x.ts.some(t=>t.district===D))&&(!q||x.p.name.toLowerCase().includes(q))).sort((a,b)=>b.n-a.n||a.p.name.localeCompare(b.p.name));
+      const ig=t=>igLink(t.instagram);
+      $("#cdir").innerHTML=`<h3>Clubs <span class="small muted">(${clubs.length})</span></h3>${clubs.length?`<div class="grid" style="margin-bottom:16px">${clubs.slice(0,60).map(t=>`<div class="card mc" data-go="team-${esc(t.id)}" style="margin:0"><div class="row sp"><b style="font-size:16px">${esc(t.name)}</b>${t.registered?'<span class="tag" style="background:#e3f3ec;color:#0e5c48">✓ Registered</span>':""}</div><div class="small muted" style="margin-top:6px">${esc(t.district||"J&K")} · ${(t.players||[]).length} players${t.ground?" · "+esc(t.ground):""}</div>${ig(t)?`<div class="small" style="margin-top:6px">📸 @${esc(ig(t))}</div>`:""}</div>`).join("")}</div>`:`<div class="card empty" style="margin-bottom:16px">No clubs found.</div>`}
+       <h3>Players <span class="small muted">(${pls.length})</span></h3>${pls.length?`<div class="card">${pls.slice(0,80).map(x=>`<div class="dirp"><div style="min-width:0"><span class="link" data-p="${esc(x.id)}" style="font-weight:600">${esc(x.p.name)}</span><div class="small muted">${esc(x.ts.map(t=>t.name).join(", ")||"No club yet")}${x.dist?" · "+esc(x.dist):""}${x.p.role&&x.p.role!=="Player"?" · "+esc(x.p.role):""}</div></div><div class="small muted" style="white-space:nowrap">${x.n} match${x.n===1?"":"es"}</div></div>`).join("")}${pls.length>80?`<div class="small muted" style="padding-top:10px">Showing 80 of ${pls.length}. Search a name to find more.</div>`:""}</div>`:`<div class="card empty">No players found.</div>`}
+       <p class="small muted">To contact a player, message their club on Instagram.</p>`;
+      bindGo($("#cdir"));bindP($("#cdir"));};
+    draw();$("#cq").oninput=e=>{S.cQ=e.target.value;draw();};
+  }
+  $("#cdist").onchange=e=>{S.cDist=e.target.value;render();};
+  app.querySelectorAll(".tabs:not(#ctype) button[data-t]").forEach(b=>b.onclick=()=>{S.cTab=b.dataset.t;render();});
+  const nb=$("#cnew");if(nb)nb.onclick=postForm;
+  bindAdmin(app);
+}
+function postForm(){
+  openModal(`<div class="row sp"><h2 style="margin:0;font-size:20px">Post a notice</h2><button class="btn g sm" id="cx">Close</button></div>
+   <form id="pf" style="margin-top:12px"><label>What's it about? *</label><select name="type">${PTYPES.map(([k,l])=>`<option value="${k}">${l}</option>`).join("")}</select>
+   <label style="margin-top:10px">Headline *</label><input name="title" required maxlength="80" placeholder="e.g. Need a T20 match this Sunday in Sopore">
+   <div class="row" style="gap:10px;margin-top:10px"><div style="flex:1 1 150px"><label>District *</label><select name="district" required><option value="">Choose…</option>${DIS.map(d=>`<option>${esc(d)}</option>`).join("")}</select></div>
+    <div style="flex:1 1 150px"><label>Date (if any)</label><input type="date" name="date"></div></div>
+   <label style="margin-top:10px">Club or team (if any)</label><input name="club" maxlength="60" placeholder="e.g. Sopore Strikers">
+   <label style="margin-top:10px">Details</label><textarea name="details" maxlength="500" rows="4" placeholder="Format, ground, timing, what you're looking for…" style="width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line,#ddd)"></textarea>
+   <label style="margin-top:10px">Your Instagram (so people can message you) *</label><input name="contact" required maxlength="60" placeholder="@yourclub">
+   <p class="small muted" style="margin:10px 0 0">Please don't post phone numbers, and don't share details about players under 18 beyond their name. @cricinsiderjk checks every post before it appears.</p>
+   <div class="small" style="color:var(--bad);margin-top:8px" id="perr"></div>
+   <div class="row" style="margin-top:12px"><button class="btn" id="pgo">Send for approval</button></div></form>`,sh=>{
+    sh.querySelector("#cx").onclick=closeModal;
+    sh.querySelector("#pf").onsubmit=async e=>{e.preventDefault();const f=e.target.elements,err=sh.querySelector("#perr");err.textContent="";
+      const clean=v=>String(v||"").trim().replace(/[ \t]+/g," ");
+      const d={type:f.type.value,title:clean(f.title.value).slice(0,80),district:f.district.value,date:f.date.value||"",club:clean(f.club.value).slice(0,60),details:String(f.details.value||"").trim().slice(0,500),contact:clean(f.contact.value).slice(0,60)};
+      if(!d.title){err.textContent="Add a headline.";return;}if(!d.district){err.textContent="Choose a district.";return;}
+      if(!igLink(d.contact)){err.textContent="Enter an Instagram username, like @yourclub.";return;}d.contact="@"+igLink(d.contact);
+      if(/(\+?91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}\b/.test(d.title+" "+d.details)){err.textContent="Please remove the phone number. People can message you on Instagram.";return;}
+      const b=sh.querySelector("#pgo");b.disabled=true;b.textContent="Sending…";
+      try{await POSTS.add(d);closeModal();S.cTab="board";toast("Sent! It'll appear once @cricinsiderjk approves it.");render();}
+      catch(x){console.warn(x);err.textContent="Couldn't send. Check your internet and try again.";b.disabled=false;b.textContent="Send for approval";}};});
+}
 function vLocal(app){
   const tab=S.lTab||"matches";
   const ms=Object.values(S.matches).filter(m=>m.local);
@@ -1383,12 +1488,12 @@ function openPlayer(id){
 function softRender(){
   const a=document.activeElement;
   if(route().v==="newmatch"&&S.loaded.teams&&S.loaded.matches&&$("#mf"))return;
-  if((route().v==="register"&&$("#rf"))||(route().v==="playerid"&&$("#pidf")))return;
+  if((route().v==="register"&&$("#rf"))||(route().v==="playerid"&&$("#pidf"))||(route().v==="community"&&$("#modal").classList.contains("on")))return;
   if(a&&$("#app").contains(a)&&(a.tagName==="INPUT"||a.tagName==="SELECT")&&a.id!=="pq")return;
   if($("#modal").classList.contains("on")&&a&&a.tagName==="INPUT")return;
   render();
 }
-AUTH.onChange(()=>{const r=route().v;if(["local","team","match","newmatch"].includes(r))softRender();});
+AUTH.onChange(()=>{const r=route().v;if(["local","team","match","newmatch","community"].includes(r))softRender();});
 /* ---------- boot ---------- */
 render();
 (async()=>{
