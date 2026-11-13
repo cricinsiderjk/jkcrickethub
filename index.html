@@ -103,6 +103,16 @@ input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90de
 .post{margin:0}.post .pt{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#e3f3ec;color:#0e5c48}
 .post .pd{white-space:pre-wrap;margin:8px 0 0;line-height:1.45}.post.pend{border:2px dashed #f2a900}
 .dirp{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line,#e5e5e5)}.dirp:last-child{border-bottom:0}
+.hero{background:linear-gradient(135deg,#0e5c48,#0b3a2f);color:#fff;border:0;border-radius:18px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
+.hero a{color:#fff}.hero .k{font-size:12px;font-weight:800;letter-spacing:.08em;opacity:.8;text-transform:uppercase}.hero .vs{font-size:22px;font-weight:800;margin:8px 0 4px;line-height:1.25}
+.hero .cd{display:flex;gap:10px;margin:14px 0 4px}.hero .cd div{background:rgba(255,255,255,.12);border-radius:12px;padding:8px 0;min-width:58px;text-align:center}.hero .cd b{display:block;font-size:24px;font-variant-numeric:tabular-nums}.hero .cd span{font-size:11px;opacity:.75}
+.hero .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ff4d4d;margin-right:6px;animation:pulse 1.4s infinite}@keyframes pulse{50%{opacity:.25}}
+.qa{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.qa a{display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:16px;text-decoration:none;font-weight:800;font-size:16px;background:var(--card,#fff);border:1px solid var(--line,#e5e5e5);color:inherit}
+.qa a .e{font-size:26px}.qa a small{font-weight:500;opacity:.65;font-size:12.5px}.qa a.pri{background:#f2a900;border-color:#f2a900;color:#1b1b1b}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:10px}.hh{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 8px}.hh h3{margin:0}.hh a{font-size:13.5px;font-weight:600;text-decoration:none}
+.star{display:flex;gap:14px;align-items:center}.star .av{flex:0 0 56px;height:56px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:#fff}
+.hsc{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}.hsc::-webkit-scrollbar{display:none}.hsc .c{scroll-snap-align:start;flex:0 0 auto;background:var(--card,#fff);border:1px solid var(--line,#e5e5e5);border-radius:14px;padding:10px 14px;min-width:150px;cursor:pointer}
+.hsc .c b{display:block;font-size:20px}.hsc .c span{font-size:12.5px;opacity:.7}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -137,10 +147,10 @@ h2{font-size:19px}
 </head>
 <body>
 <header><div class="hwrap">
-  <div class="brand">🏏 CricInsider.jk <small>Scores &amp; stats for Jammu &amp; Kashmir cricket · No ads</small><button id="bell" class="bell" hidden title="J&amp;K match alerts">🔔 <span>Alerts</span></button></div>
+  <div class="brand"><a href="#home" style="color:inherit;text-decoration:none">🏏 CricInsider.jk</a> <small>Scores &amp; stats for Jammu &amp; Kashmir cricket · No ads</small><button id="bell" class="bell" hidden title="J&amp;K match alerts">🔔 <span>Alerts</span></button></div>
   <nav id="nav">
-    <span class="ng">Domestic</span>
-    <a href="#home" data-v="home">Matches</a>
+        <a href="#home" data-v="home">🏠 Home</a>
+    <a href="#matches" data-v="matches">Matches</a>
     <a href="#tournaments" data-v="tournaments">Tournaments</a>
     <a href="#stats" data-v="stats">Stats</a>
     <a href="#leaders" data-v="leaders">Leaderboards</a>
@@ -479,7 +489,7 @@ function closeModal(){$("#modal").classList.remove("on");$("#sheet").innerHTML="
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
 
 /* ---------- routing ---------- */
-function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};if(h==="players")return{v:"stats"};if(h==="playerid")return{v:"playerid"};if(h.startsWith("register-"))return{v:"register",id:h.slice(9)};return{v:["leaders","stats","teams","squads","newmatch","register","tournaments","local","community"].includes(h)?h:"home"};}
+function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};if(h==="players")return{v:"stats"};if(h==="playerid")return{v:"playerid"};if(h.startsWith("register-"))return{v:"register",id:h.slice(9)};return{v:["leaders","stats","teams","squads","newmatch","register","tournaments","local","community","matches"].includes(h)?h:"home"};}
 window.addEventListener("hashchange",()=>{S.mTab="live";try{if($("#modal").classList.contains("on"))closeModal();}catch(e){}if(location.hash.startsWith("#tour-")&&location.hash!==S._lastTour){S.tSeason=undefined;S._lastTour=location.hash;}if(location.hash!=="#newmatch")S.prefMatch=null;if(!location.hash.startsWith("#tour-"))S.tTab="matches";render();window.scrollTo(0,0);});
 
 /* ---------- views ---------- */
@@ -521,12 +531,12 @@ setTimeout(()=>PUSH.init(),0);
 setInterval(()=>{try{if(!document.hidden&&Object.values(S.matches).some(m=>m.start&&!m.local&&m.status!=="done"&&Math.abs(Date.now()-Date.parse(m.start))<5*864e5)&&!document.querySelector(".modal.on")&&!document.activeElement.matches("input,select,textarea"))render();}catch(e){}},60000);
 function render(){
   const r=route();
-  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(r.v==="newmatch"||r.v==="register"||r.v==="playerid"?"local":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"home"):r.v==="team"?(S.teams[r.id]&&S.teams[r.id].local?"local":"teams"):r.v==="tour"?"tournaments":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"home"):r.v)));
+  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(r.v==="newmatch"||r.v==="register"||r.v==="playerid"?"local":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v==="team"?(S.teams[r.id]&&S.teams[r.id].local?"local":"teams"):r.v==="tour"?"tournaments":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v)));
   const app=$("#app");
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
   if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
   const hk=location.hash;if(S._lh!==hk){S._lh=hk;app.classList.remove("fade");void app.offsetWidth;app.classList.add("fade");if(S._booted)window.scrollTo(0,0);S._booted=1;}
-  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:()=>{location.hash="local";},tournaments:vTours,tour:vTour,local:vLocal,community:()=>{location.hash="local";}}[r.v];
+  const V={home:vStart,matches:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:()=>{location.hash="local";},tournaments:vTours,tour:vTour,local:vLocal,community:()=>{location.hash="local";}}[r.v];
   V(app,r);
 }
 
@@ -552,6 +562,72 @@ function matchCard(m){
 }
 function bindGo(root){root.querySelectorAll("[data-go]").forEach(e=>e.onclick=()=>location.hash=e.dataset.go);}
 
+/* ----- Home: one screen that answers "what's happening now?" ----- */
+function favId(){try{return localStorage.getItem("ci_fav")||"";}catch(e){return"";}}
+function setFav(id){try{id?localStorage.setItem("ci_fav",id):localStorage.removeItem("ci_fav");}catch(e){}}
+const jkIn=m=>isJKid(m.teamA)||isJKid(m.teamB);
+function cdHtml(iso){return`<div class="cd" data-cd="${esc(iso)}">${["days","hrs","min","sec"].map(u=>`<div><b>–</b><span>${u}</span></div>`).join("")}</div>`;}
+function tickCd(){document.querySelectorAll("[data-cd]").forEach(el=>{let d=Math.max(0,Date.parse(el.dataset.cd)-Date.now())/1000;const v=[Math.floor(d/86400),Math.floor(d%86400/3600),Math.floor(d%3600/60),Math.floor(d%60)];
+  el.querySelectorAll("b").forEach((b,i)=>b.textContent=String(v[i]).padStart(i?2:1,"0"));if(d<=0&&!el.dataset.done){el.dataset.done=1;setTimeout(()=>{if(route().v==="home")render();},1500);}});}
+setInterval(tickCd,1000);
+function vStart(app){
+  const all=Object.values(S.matches);
+  const dom=all.filter(m=>!m.local&&jkIn(m));
+  const liveD=dom.filter(m=>m.status==="live"||inPlay(m)).sort((a,b)=>(catOf(a.tournament)==="Senior Men"?0:1)-(catOf(b.tournament)==="Senior Men"?0:1));
+  const liveL=all.filter(m=>m.local&&m.status==="live").sort((a,b)=>(b.created||"").localeCompare(a.created||""));
+  const up=dom.filter(m=>m.status==="upcoming"&&!inPlay(m)&&!pending(m)&&m.start&&Date.parse(m.start)>Date.now()).sort((a,b)=>a.start.localeCompare(b.start));
+  const nextSr=up.find(m=>catOf(m.tournament)==="Senior Men")||up[0];
+  const done=dom.filter(m=>m.status==="done").sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const lastSr=done.find(m=>catOf(m.tournament)==="Senior Men")||done[0];
+  const fav=S.teams[favId()];
+  const favMs=fav?all.filter(m=>m.teamA===fav.id||m.teamB===fav.id):[];
+  const favLive=favMs.find(m=>m.status==="live"||inPlay(m));
+  const favNext=favMs.filter(m=>m.status==="upcoming"&&!inPlay(m)&&!pending(m)).sort((a,b)=>(a.start||a.date||"").localeCompare(b.start||b.date||""))[0];
+  const favLast=favMs.filter(m=>m.status==="done").sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""))[0];
+  // hero
+  const hm=liveD[0];let hero="";
+  if(hm)hero=`<div class="hero" data-go="match-${esc(hm.id)}" style="cursor:pointer"><div class="k"><span class="dot"></span>Live now · ${esc(hm.tournament)}</div>
+     <div class="vs">${esc(tn(hm.teamA))} <span style="opacity:.6;font-weight:600">vs</span> ${esc(tn(hm.teamB))}</div>
+     ${hm.innings&&hm.innings.length?`<div style="font-size:18px;font-weight:700">${esc(tsn(hm.teamA))} ${teamScore(hm,hm.teamA)} · ${esc(tsn(hm.teamB))} ${teamScore(hm,hm.teamB)}</div>`:""}
+     <div style="margin-top:14px">${hm.cricinfo?`<a class="btn" href="${esc(hm.cricinfo)}" target="_blank" rel="noopener" style="background:#fff;color:#0b3a2f;text-decoration:none" onclick="event.stopPropagation()">🔴 Watch live score</a>`:`<span class="btn" style="background:#fff;color:#0b3a2f">Open match</span>`}</div></div>`;
+  else if(nextSr)hero=`<div class="hero" data-go="match-${esc(nextSr.id)}" style="cursor:pointer"><div class="k">Next J&amp;K match · ${esc(nextSr.tournament)}</div>
+     <div class="vs">${esc(tn(nextSr.teamA))} <span style="opacity:.6;font-weight:600">vs</span> ${esc(tn(nextSr.teamB))}</div>
+     <div class="small" style="opacity:.85">🕒 ${esc(ftime(nextSr.start))}${nextSr.venue?" · 📍 "+esc(nextSr.venue):""}</div>${cdHtml(nextSr.start)}
+     ${!PUSH.sub&&PUSH.cfg.worker?`<button class="btn" id="halert" style="background:#fff;color:#0b3a2f;margin-top:12px">🔔 Alert me when it starts</button>`:PUSH.sub?`<div class="small" style="margin-top:10px;opacity:.85">🔔 You'll get an alert when it starts</div>`:""}</div>`;
+  else if(lastSr)hero=`<div class="hero" data-go="match-${esc(lastSr.id)}" style="cursor:pointer"><div class="k">Latest J&amp;K result · ${esc(lastSr.tournament)}</div>
+     <div class="vs">${esc(tn(lastSr.teamA))} <span style="opacity:.6;font-weight:600">vs</span> ${esc(tn(lastSr.teamB))}</div><div style="font-weight:700">${esc(lastSr.result||"")}</div></div>`;
+  // star of the month (local)
+  const months=[...new Set(all.filter(m=>m.local).map(m=>(m.date||"").slice(0,7)).filter(Boolean))].sort().reverse();
+  let star=null,smo="";for(const mo of months.slice(0,2)){const st=Object.values(stats({local:true,mo})).map(p=>({...p,mvp:p.r+p.w*20+p.ct*10})).sort((a,b)=>b.mvp-a.mvp);if(st[0]&&st[0].mvp>0){star=st[0];smo=mo;break;}}
+  const sst=Object.values(stats({t:"cat:Senior Men",s:CUR_SEASON}));
+  const topR=sst.filter(p=>p.r>0).sort((a,b)=>b.r-a.r)[0],topW=sst.filter(p=>p.w>0).sort((a,b)=>b.w-a.w||a.br-b.br)[0];
+  const favLine=m=>m?(m.status==="done"?esc(m.result||"Result"):m.status==="live"||inPlay(m)?"🔴 Live now":"🕒 "+esc(ftime(m.start)||fdate(m.date))):"";
+  app.innerHTML=`
+  ${hero}
+  ${liveL.length?`<div class="hh"><h3><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e53935;margin-right:6px;animation:pulse 1.4s infinite"></span>Local matches live</h3><a href="#local">All local ›</a></div><div class="hsc">${liveL.slice(0,10).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</span><b>${(()=>{const i=curInn(m);if(!i)return"–";const c=calc(i);return c.runs+"/"+c.wkts;})()}</b><span>${esc((S.teams[m.teamA]||{}).district||"")}</span></div>`).join("")}</div>`:""}
+  ${fav?`<div class="hh"><h3>★ ${esc(fav.name)}</h3><a href="#team-${esc(fav.id)}">Team page ›</a></div>
+    <div class="card" style="margin:0">${favLive?`<div class="hrow" data-go="match-${esc(favLive.id)}" style="cursor:pointer"><b>🔴 Playing now vs ${esc(tn(favLive.teamA===fav.id?favLive.teamB:favLive.teamA))}</b><span>›</span></div>`:""}
+     ${favLast?`<div class="hrow" data-go="match-${esc(favLast.id)}" style="cursor:pointer;padding:6px 0"><span><span class="small muted">Last</span> · vs ${esc(tn(favLast.teamA===fav.id?favLast.teamB:favLast.teamA))}<div class="small res">${favLine(favLast)}</div></span><span class="muted">›</span></div>`:""}
+     ${favNext?`<div class="hrow" data-go="match-${esc(favNext.id)}" style="cursor:pointer;padding:6px 0"><span><span class="small muted">Next</span> · vs ${esc(tn(favNext.teamA===fav.id?favNext.teamB:favNext.teamA))}<div class="small">${favLine(favNext)}</div></span><span class="muted">›</span></div>`:""}
+     ${!favLive&&!favLast&&!favNext?`<div class="small muted">No matches yet. They'll show here as soon as one is scored.</div>`:""}</div>`:""}
+  <div class="qa" style="margin-top:16px"><a class="pri" href="#newmatch"><span class="e">▶</span>Score a match<small>Live, ball by ball. No sign-up.</small></a><a href="#register"><span class="e">🏟️</span>Register your club<small>Free club page, squad &amp; stats</small></a></div>
+  ${star?`<div class="hh"><h3>⭐ Player of the Month</h3><a href="#local" id="hpotm">Leaderboard ›</a></div>
+   <div class="card" style="margin:0"><div class="star"><div class="av" style="background:hsl(${ppHue(star.id)},55%,42%)">${esc(ppInit(pn(star.id)))}</div><div style="min-width:0;flex:1"><div class="link" data-p="${esc(star.id)}" style="font-size:18px;font-weight:800">${esc(pn(star.id))}</div>
+   <div class="small muted">${esc(((S.players[star.id]||{}).team)||"")} · ${esc(monthName(smo))}</div><div class="small" style="margin-top:4px"><b>${star.r}</b> runs · <b>${star.w}</b> wkts · <b>${star.ct}</b> catches</div></div></div></div>`:""}
+  ${topR||topW||lastSr?`<div class="hh"><h3>J&amp;K seniors · ${esc(CUR_SEASON)}</h3><a href="#leaders">Leaderboards ›</a></div>
+   <div class="card" style="margin:0">
+    ${lastSr&&hm?`<div class="hrow" data-go="match-${esc(lastSr.id)}" style="cursor:pointer;padding:4px 0 10px"><span><span class="small muted">Latest result</span><div style="font-weight:600">${esc(lastSr.result||(tn(lastSr.teamA)+" vs "+tn(lastSr.teamB)))}</div></span><span class="muted">›</span></div>`:lastSr&&!hm&&nextSr?`<div class="hrow" data-go="match-${esc(lastSr.id)}" style="cursor:pointer;padding:4px 0 10px"><span><span class="small muted">Latest result</span><div style="font-weight:600">${esc(lastSr.result||"")}</div></span><span class="muted">›</span></div>`:""}
+    ${topR?`<div class="hrow" style="padding:6px 0;border-top:1px solid var(--line,#eee)"><span>🏏 <span class="link" data-p="${esc(topR.id)}" style="font-weight:600">${esc(pn(topR.id))}</span> <span class="small muted">most runs</span></span><b>${topR.r}</b></div>`:""}
+    ${topW?`<div class="hrow" style="padding:6px 0;border-top:1px solid var(--line,#eee)"><span>🎯 <span class="link" data-p="${esc(topW.id)}" style="font-weight:600">${esc(pn(topW.id))}</span> <span class="small muted">most wickets</span></span><b>${topW.w}</b></div>`:""}
+   </div>`:""}
+  ${up.length>1?`<div class="hh"><h3>Coming up</h3><a href="#matches">All matches ›</a></div><div class="hsc">${up.filter(m=>m!==nextSr).slice(0,8).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(CAT_SH[catOf(m.tournament)]||m.tournament)}</span><b style="font-size:15px;margin:4px 0">${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</b><span>${esc(ftime(m.start))}</span></div>`).join("")}</div>`:""}
+  ${!fav?`<div class="card" style="margin-top:16px;display:flex;gap:12px;align-items:center"><span style="font-size:26px">☆</span><div style="flex:1"><b>Follow your team</b><div class="small muted">Its live score, last result and next match will show first, right here.</div></div><a class="btn g sm" href="#local" id="hfol" style="text-decoration:none">Pick a team</a></div>`:""}
+  ${!PUSH.sub&&PUSH.cfg.worker&&(hm||!nextSr)?`<div class="card" style="margin-top:16px;display:flex;gap:12px;align-items:center"><span style="font-size:26px">🔔</span><div style="flex:1"><b>Never miss a J&amp;K match</b><div class="small muted">Get an alert when J&amp;K start and when the result is in.</div></div><button class="btn sm" id="halert2">Turn on</button></div>`:""}`;
+  tickCd();bindGo(app);bindP(app);
+  ["#halert","#halert2"].forEach(x=>{const b=$(x);if(b)b.onclick=ev=>{ev.stopPropagation();PUSH.open();};});
+  const hp=$("#hpotm");if(hp)hp.onclick=()=>{S.lTab="potm";};
+  const hf=$("#hfol");if(hf)hf.onclick=()=>{S.lTab="teams";toast("Open a team and tap ☆ Follow");};
+}
 function vHome(app){
   const hc=S.hCat||"";
   const all=Object.values(S.matches).filter(m=>!m.local&&(!hc||catOf(m.tournament)===hc)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""));
@@ -660,6 +736,7 @@ function vTeam(app,r){
   const ps=jk?teamSeasonPlayers(t,se==="all"?"":se):(t.players||[]);
   const ms=jk?teamSeasonMs(t,se==="all"?"":se):Object.values(S.matches).filter(m=>m.teamA===t.id||m.teamB===t.id);
   app.innerHTML=`<div class="card"><div class="row sp"><div><div class="small muted">${t.local?'<a href="#local">Local cricket</a> / Teams':'<a href="#squads">Squads</a>'} /</div><h2 style="margin:4px 0 2px;font-size:22px">${esc(t.name)}${t.local&&t.registered?' <span class="tag" style="background:#e3f3ec;color:#0e5c48;vertical-align:4px">✓ Registered club</span>':""}</h2><div class="small muted">${esc(t.district||"J&K")} · ${ps.length} players · ${ms.length} matches${jk?` · <select id="tss" style="width:auto;padding:4px 8px;font-size:13px">${teamSeasons().map(x=>`<option value="${esc(x)}" ${x===se?"selected":""}>${esc(x)}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="all" ${se==="all"?"selected":""}>All seasons</option></select>`:""}</div></div>
+   <button class="btn ${favId()===t.id?"":"g"} sm" id="fol" style="margin-top:10px">${favId()===t.id?"★ Following":"☆ Follow this team"}</button>
    ${t.local&&(t.ground||t.founded||t.captain||t.insta)?`<div class="small" style="margin-top:8px;line-height:1.8">${[t.ground?`🏟️ ${esc(t.ground)}`:"",t.founded?`📅 Since ${esc(t.founded)}`:"",t.captain?`🧢 Captain: ${esc(t.captain)}`:"",t.insta?`<a href="https://instagram.com/${esc(t.insta)}" target="_blank" rel="noopener">📸 @${esc(t.insta)}</a>`:""].filter(Boolean).join(" &nbsp;·&nbsp; ")}</div>`:""}
    ${t.local&&AUTH.enabled?(t.registered?((AUTH.isAdmin||(AUTH.uid&&t.createdBy===AUTH.uid))?`<a class="btn g sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">Edit club details</a>`:""):`<a class="btn sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">🏟️ Register this club</a>`):""}
    ${ce?`<div class="row"><button class="btn g sm" id="et">Edit</button>${!t.local||AUTH.isAdmin?'<button class="btn d sm" id="dt">Delete team</button>':""}</div>`:""}</div></div>
@@ -670,6 +747,7 @@ function vTeam(app,r){
   <div class="card"><h3>${jk?(se==="all"?"All players":"Players · "+esc(se)):"Squad"}</h3>${ps.length?ps.map(p=>{const s=st[p.id];return`<div class="pl"><div><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span> <span class="small muted">· ${esc(p.role||"")}${t.local?` · <span style="font-family:ui-monospace,monospace">${pcode(p.id)}</span>`:""}</span></div>
    <div class="row"><span class="small muted">${s?`${s.r} runs · ${s.w} wkts`:"—"}</span>${ce?`<button class="btn d sm" data-rm="${esc(p.id)}">Remove</button>`:""}</div></div>`}).join(""):'<div class="muted">'+(jk?"Squad not announced yet for this season.":"No players yet.")+'</div>'}</div>
   ${jk&&ms.length?`<h3>Matches${se!=="all"?" · "+esc(se):""}</h3><div class="grid">${ms.sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(matchCard).join("")}</div>`:""}`;
+  {const fb=$("#fol");if(fb)fb.onclick=()=>{const on=favId()!==t.id;setFav(on?t.id:"");toast(on?`★ Following ${t.name}. Its matches now show first on Home.`:"Unfollowed");render();};}
   bindP(app);if(jk){$("#tss").onchange=e=>{S.tmSeason=e.target.value;render();};bindGo(app);}
   if(ce){
     $("#et").onclick=()=>teamForm(t);
@@ -985,7 +1063,7 @@ function vQuick(app){
 /* ----- upcoming ----- */
 function vUpcoming(app,m){
   const sq=jkSq(m);
-  app.innerHTML=`<div class="card"><div class="row sp"><span class="small muted"><a href="#home">Matches</a> / <a href="#tour-${esc(slug(m.tournament))}">${esc(m.tournament)}</a>${m.matchNo?" · "+esc(m.matchNo):""}</span><span class="tag">Upcoming</span></div>
+  app.innerHTML=`<div class="card"><div class="row sp"><span class="small muted"><a href="#matches">Matches</a> / <a href="#tour-${esc(slug(m.tournament))}">${esc(m.tournament)}</a>${m.matchNo?" · "+esc(m.matchNo):""}</span><span class="tag">Upcoming</span></div>
    <div class="row sp" style="margin-top:14px;justify-content:center;gap:18px;text-align:center"><b style="font-size:20px">${esc(tn(m.teamA))}</b><span class="muted">vs</span><b style="font-size:20px">${esc(tn(m.teamB))}</b></div>
    <div style="text-align:center;margin-top:12px"><div style="font-weight:700">🕒 ${esc(ftime(m.start)||fdate(m.date))}</div><div class="small muted" style="margin-top:4px">${esc(m.venue||"Venue TBA")} · ${m.overs||20} overs a side · shown in your local time</div></div>
    ${inPlay(m)?`<div style="text-align:center;margin-top:14px"><span class="tag live">Live now</span></div>`:""}
@@ -1000,7 +1078,7 @@ function vUpcoming(app,m){
 /* ----- match ----- */
 function canScoreMatch(m){return !!(m&&m.local&&(AUTH.isAdmin||(AUTH.uid&&m.createdBy===AUTH.uid)));}
 function vMatch(app,r){
-  const m=S.matches[r.id];if(!m){app.innerHTML=`<div class="card empty">Match not found. <a href="#home">All matches</a></div>`;return;}
+  const m=S.matches[r.id];if(!m){app.innerHTML=`<div class="card empty">Match not found. <a href="#matches">All matches</a></div>`;return;}
   if(m.status==="upcoming"){vUpcoming(app,m);return;}
   const live=m.status==="live";const inn=curInn(m);const idx=m.innings.length-1;
   let status="";
@@ -1009,7 +1087,7 @@ function vMatch(app,r){
   else if(m.toss&&idx===0)status=`<div class="small muted" style="margin-top:8px">${esc(tn(m.toss.w))} won the toss and chose to ${esc(m.toss.d)}</div>`;
   const tab=S.mTab;
   app.innerHTML=`<div class="card">
-    <div class="row sp"><span class="small muted">${m.local?`<a href="#local">Local cricket</a> / ${esc(m.tournament||"Friendly")}`:`<a href="#home">Matches</a> / <a href="#tour-${esc(slug(m.tournament))}">${esc(m.tournament)}</a>`} · ${fdate(m.date)}${m.venue?" · "+esc(m.venue):""}${m.overs?` · ${m.overs} overs`:" · Multi-day"}</span><span><span class="tag ${m.local?"loc":"dom"}">${m.local?"Local club":"Domestic"}</span> ${live?'<span class="tag live">Live</span>':'<span class="tag">Result</span>'}</span></div>
+    <div class="row sp"><span class="small muted">${m.local?`<a href="#local">Local cricket</a> / ${esc(m.tournament||"Friendly")}`:`<a href="#matches">Matches</a> / <a href="#tour-${esc(slug(m.tournament))}">${esc(m.tournament)}</a>`} · ${fdate(m.date)}${m.venue?" · "+esc(m.venue):""}${m.overs?` · ${m.overs} overs`:" · Multi-day"}</span><span><span class="tag ${m.local?"loc":"dom"}">${m.local?"Local club":"Domestic"}</span> ${live?'<span class="tag live">Live</span>':'<span class="tag">Result</span>'}</span></div>
     ${m.local&&m.scorer?`<div class="small muted" style="margin-top:6px">Scored by ${esc(m.scorer)}</div>`:""}${m.cricinfo&&!m.local?`<div style="margin-top:10px">${ciBtn(m)}</div>`:""}${m.src?`<div class="small muted" style="margin-top:6px">Imported scorecard · source: <a href="${esc(m.src)}" target="_blank" rel="noopener">${esc(m.srcName||"match report")}</a></div>`:""}
     <div class="tline" style="margin-top:10px"><b style="font-size:16px">${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
     <div class="tline"><b style="font-size:16px">${esc(tn(m.teamB))}</b><span class="score">${teamScore(m,m.teamB)}</span></div>${status}
