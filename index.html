@@ -116,6 +116,11 @@ h2{font-size:19px}
 .ci{display:inline-block;text-decoration:none}.btn.ci:not(.g){background:#c81e1e}
 .bell{margin-left:auto;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font:700 13px Inter,sans-serif;padding:7px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}.bell.on{background:#f2a900;border-color:#f2a900;color:#16191d}.bell:hover{background:rgba(255,255,255,.22)}.bell.on:hover{background:#f2a900}
 @media (max-width:560px){.bell span{display:none}}
+.mob{display:none}
+.sc{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer}.sc:last-child{border-bottom:0}
+.sc .rk{flex:0 0 22px}.sc .sn{flex:1;min-width:0}.sc .sn b{font-size:15px}.sc .sn .small{margin-top:2px;line-height:1.45}
+.sc .sv{text-align:right;font-weight:800;font-size:20px;line-height:1}.sc .sv small{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}
+@media (max-width:640px){.desk{display:none}.mob{display:block}}
 .more{display:block;width:100%;margin-top:12px}
 @media (max-width:560px){.ng{display:none}.score{font-size:15.5px}.brand small{display:none}.hwrap{padding-top:10px;gap:4px}main{padding:12px 12px 50px}.grid{gap:10px}.card{padding:14px}nav a{padding:10px 11px}}
 @media (prefers-reduced-motion:reduce){#app.fade{animation:none}.mc:hover{transform:none}}
@@ -1154,17 +1159,31 @@ function vLeaders(app){
     try{await navigator.clipboard.writeText(txt);toast("Copied");}catch(e){toast("Couldn't copy");}};
 }
 function vPlayers(app){
-  const st=stats(S.lbF);
+  const st=stats(S.lbF);const view=S.pView||"bat";
   const q=(S.pq||"").toLowerCase();
-  const sen=(S.teams["t-jk"]||{players:[]});const ps=(sen.players||[]).map(p=>({...p,team:sen.name||"Jammu & Kashmir"})).filter(p=>!q||p.name.toLowerCase().includes(q))
-    .map(p=>({...p,s:st[p.id]||{m:0,inn:0,r:0,hs:0,avg:null,sr:null,w:0,eco:null}})).sort((a,b)=>b.s.r-a.s.r||b.s.w-a.s.w||a.name.localeCompare(b.name));
+  const sen=(S.teams["t-jk"]||{players:[]});
+  let ps=(sen.players||[]).filter(p=>!q||p.name.toLowerCase().includes(q))
+    .map(p=>{const s=st[p.id]||{m:0,inn:0,no:0,r:0,b:0,hs:0,w:0,bb:0,br:0,bw:-1,bwr:0};
+      s.avg=s.inn-s.no>0?s.r/(s.inn-s.no):null;s.sr=s.b?s.r*100/s.b:null;s.eco=s.bb?s.br*6/s.bb:null;s.bavg=s.w?s.br/s.w:null;return{...p,s};});
+  const bat=view==="bat";
+  const active=ps.filter(p=>bat?p.s.inn>0:p.s.bb>0).sort(bat?(a,b)=>b.s.r-a.s.r||(b.s.avg||0)-(a.s.avg||0):(a,b)=>b.s.w-a.s.w||(a.s.eco||99)-(b.s.eco||99));
+  const rest=ps.filter(p=>!active.includes(p));
+  const hs=p=>`${p.s.hs}${p.s.hsNo?"*":""}`,best=p=>p.s.bw>=0?`${p.s.bw}/${p.s.bwr}`:"–";
+  const table=bat?`<table><thead><tr><th class="l">#</th><th class="l">Player</th><th>M</th><th>Inns</th><th>Runs</th><th>HS</th><th>Avg</th><th>SR</th><th>100s</th><th>50s</th><th>4s</th><th>6s</th></tr></thead><tbody>
+      ${active.map((p,i)=>`<tr><td class="l muted">${i+1}</td><td class="l"><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span><div class="small muted">${esc(p.role||"")}</div></td><td>${p.s.m}</td><td>${p.s.inn}</td><td><b>${p.s.r}</b></td><td>${hs(p)}</td><td>${fmt(p.s.avg)}</td><td>${fmt(p.s.sr,1)}</td><td>${p.s.c100||0}</td><td>${p.s.c50||0}</td><td>${p.s.f||0}</td><td>${p.s.s||0}</td></tr>`).join("")}</tbody></table>`
+    :`<table><thead><tr><th class="l">#</th><th class="l">Player</th><th>M</th><th>Overs</th><th>Wkts</th><th>Runs</th><th>Best</th><th>Avg</th><th>Econ</th></tr></thead><tbody>
+      ${active.map((p,i)=>`<tr><td class="l muted">${i+1}</td><td class="l"><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span><div class="small muted">${esc(p.role||"")}</div></td><td>${p.s.m}</td><td>${ov(p.s.bb)}</td><td><b>${p.s.w}</b></td><td>${p.s.br}</td><td>${best(p)}</td><td>${fmt(p.s.bavg)}</td><td>${fmt(p.s.eco)}</td></tr>`).join("")}</tbody></table>`;
+  const cards=active.map((p,i)=>`<div class="sc" data-p="${esc(p.id)}"><span class="rk">${i+1}</span><div class="sn"><b>${esc(p.name)}</b><div class="small muted">${bat
+      ?`${p.s.inn} inns · HS ${hs(p)} · Avg ${fmt(p.s.avg)} · SR ${fmt(p.s.sr,1)}${p.s.c100?` · ${p.s.c100}×100`:""}${p.s.c50?` · ${p.s.c50}×50`:""}`
+      :`${ov(p.s.bb)} ov · Best ${best(p)} · Econ ${fmt(p.s.eco)} · Avg ${fmt(p.s.bavg)}`}</div></div><div class="sv">${bat?p.s.r:p.s.w}<small>${bat?"runs":"wkts"}</small></div></div>`).join("");
   app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2 style="margin-bottom:4px">Season stats</h2>
-   <p class="small muted" style="margin:0 0 14px">J&amp;K senior men in Ranji Trophy, Syed Mushtaq Ali, Vijay Hazare &amp; Irani Cup. Local club stats are under <a href="#local">Local club cricket → Player of the Month</a>.</p>${filterBar("pf")}
+   <p class="small muted" style="margin:0 0 14px">J&amp;K senior men in Ranji Trophy, Syed Mushtaq Ali, Vijay Hazare &amp; Irani Cup. Tap a player for match-by-match figures.</p>${filterBar("pf")}
+   <div class="tabs" id="pvw"><button data-v="bat" class="${bat?"on":""}">🏏 Batting</button><button data-v="bowl" class="${bat?"":"on"}">🎯 Bowling</button></div>
    <input id="pq" placeholder="Search player…" value="${esc(S.pq||"")}" style="margin-bottom:12px">
-   <div class="card scroll"><table><thead><tr><th class="l">Player</th><th>M</th><th>Inns</th><th>Runs</th><th>HS</th><th>Avg</th><th>SR</th><th>Wkts</th><th>Econ</th></tr></thead><tbody>
-   ${ps.map(p=>`<tr><td class="l"><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span><div class="small muted">${esc(p.team)} · ${esc(p.role||"")}</div></td><td>${p.s.m}</td><td>${p.s.inn}</td><td><b>${p.s.r}</b></td><td>${p.s.hs}${p.s.hsNo?"*":""}</td><td>${fmt(p.s.avg)}</td><td>${fmt(p.s.sr,1)}</td><td><b>${p.s.w}</b></td><td>${fmt(p.s.eco)}</td></tr>`).join("")||'<tr><td colspan="9" class="empty">No players yet</td></tr>'}
-   </tbody></table></div>`;
+   ${active.length?`<div class="card scroll desk" style="padding:6px 12px">${table}</div><div class="card mob" style="padding:4px 14px">${cards}</div>`:`<div class="card empty">No ${bat?"batting":"bowling"} figures ${q?"for that search ":""}yet.</div>`}
+   ${rest.length&&!q?`<p class="small muted" style="margin-top:4px">${bat?"Yet to bat":"Yet to bowl"} this season: ${rest.map(p=>`<span class="link" data-p="${esc(p.id)}">${esc(p.name)}</span>`).join(", ")}</p>`:""}`;
   bindFilter("pf");bindP(app);
+  app.querySelectorAll("#pvw [data-v]").forEach(b=>b.onclick=()=>{S.pView=b.dataset.v;render();});
   const pq=$("#pq");pq.oninput=()=>{S.pq=pq.value;const pos=pq.selectionStart;render();const n=$("#pq");n.focus();n.setSelectionRange(pos,pos);};
 }
 function openPlayer(id){
