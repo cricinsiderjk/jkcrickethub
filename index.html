@@ -23,6 +23,16 @@ header{background:#0e5c48;color:#fff}
 nav{display:flex;gap:2px;overflow-x:auto}
 nav a{color:#fff;opacity:.78;text-decoration:none;font-weight:600;padding:10px 14px;border-bottom:3px solid transparent;white-space:nowrap}
 nav a.on{opacity:1;border-bottom-color:#fff}
+nav{align-items:center}
+.ng{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;opacity:.6;padding:0 6px 0 2px;white-space:nowrap}
+.nsep{flex:0 0 1px;align-self:stretch;background:rgba(255,255,255,.3);margin:8px 8px}
+nav a.nloc{background:rgba(242,169,0,.18);border-radius:10px 10px 0 0}
+nav a.nloc.on{border-bottom-color:#f2a900}
+.tag.dom{background:#e7f1fb;color:#1e4f8a}.tag.loc{background:#fdf0dc;color:#9a5b00}
+@media (prefers-color-scheme:dark){.tag.dom{background:#16324f;color:#a9cdf5}.tag.loc{background:#4a3410;color:#f5c97a}}
+.sec{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:8px}
+.sec.dom{background:#e7f1fb;color:#1e4f8a}.sec.loc{background:#fdf0dc;color:#9a5b00}
+@media (prefers-color-scheme:dark){.sec.dom{background:#16324f;color:#a9cdf5}.sec.loc{background:#4a3410;color:#f5c97a}}
 main{max-width:1040px;margin:0 auto;padding:16px 16px 60px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
 h2{font-size:18px;margin:0 0 12px;letter-spacing:-.01em}
@@ -92,12 +102,14 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 <header><div class="hwrap">
   <div class="brand">🏏 CricInsider.jk <small>Scores &amp; stats for Jammu &amp; Kashmir cricket · No ads</small></div>
   <nav id="nav">
+    <span class="ng">Domestic</span>
     <a href="#home" data-v="home">Matches</a>
-    <a href="#local" data-v="local">🏏 Local cricket</a>
     <a href="#tournaments" data-v="tournaments">Tournaments</a>
+    <a href="#stats" data-v="stats">Stats</a>
     <a href="#leaders" data-v="leaders">Leaderboards</a>
-    <a href="#players" data-v="players">Players</a>
     <a href="#teams" data-v="teams">Teams</a>
+    <span class="nsep"></span>
+    <a href="#local" data-v="local" class="nloc">🏏 Local club cricket</a>
   </nav>
 </div></header>
 <main id="app"><div class="empty">Loading…</div></main>
@@ -344,7 +356,7 @@ function closeModal(){$("#modal").classList.remove("on");$("#sheet").innerHTML="
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
 
 /* ---------- routing ---------- */
-function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};return{v:["leaders","players","teams","newmatch","tournaments","local"].includes(h)?h:"home"};}
+function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};if(h==="players")return{v:"stats"};return{v:["leaders","stats","teams","newmatch","tournaments","local"].includes(h)?h:"home"};}
 window.addEventListener("hashchange",()=>{S.mTab="live";if(location.hash!=="#newmatch")S.prefMatch=null;if(!location.hash.startsWith("#tour-"))S.tTab="matches";render();window.scrollTo(0,0);});
 
 /* ---------- views ---------- */
@@ -354,7 +366,7 @@ function render(){
   const app=$("#app");
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
   if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
-  const V={home:vHome,leaders:vLeaders,players:vPlayers,teams:vTeams,team:vTeam,match:vMatch,newmatch:vQuick,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
+  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vTeams,team:vTeam,match:vMatch,newmatch:vQuick,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
   V(app,r);
 }
 
@@ -366,7 +378,7 @@ function matchCard(m){
   else if(m.result)sub=`<div class="small res" style="margin-top:6px">${esc(m.result)}</div>`;
   else if(live&&m.toss)sub=`<div class="small muted" style="margin-top:6px">${esc(tsn(m.toss.w))} won the toss, chose to ${esc(m.toss.d)}</div>`;
   return`<div class="card mc" data-go="match-${esc(m.id)}" style="margin:0">
-   <div class="row sp"><span class="small muted">${esc(m.tournament||"Friendly")} · ${fdate(m.date)}</span>${live?'<span class="tag live">Live</span>':up?'<span class="tag">Upcoming</span>':'<span class="tag">Result</span>'}</div>
+   <div class="row sp"><span class="small muted"><span class="tag ${m.local?"loc":"dom"}" style="margin-right:6px">${m.local?"Local club":"Domestic"}</span>${esc(m.tournament||"Friendly")} · ${fdate(m.date)}</span>${live?'<span class="tag live">Live</span>':up?'<span class="tag">Upcoming</span>':'<span class="tag">Result</span>'}</div>
    ${up?`<div class="tline" style="margin-top:8px"><b>${esc(tn(m.teamA))}</b><span class="muted small">vs</span><b>${esc(tn(m.teamB))}</b></div>`:`<div class="tline" style="margin-top:8px"><b>${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
    <div class="tline"><b>${esc(tn(m.teamB))}</b><span class="score">${teamScore(m,m.teamB)}</span></div>`}${sub}</div>`;
 }
@@ -380,6 +392,8 @@ function vHome(app){
   const topR=st.filter(p=>p.r>0).sort((a,b)=>b.r-a.r).slice(0,5),topW=st.filter(p=>p.w>0).sort((a,b)=>b.w-a.w||a.br-b.br).slice(0,5);
   const ready=Object.values(S.teams).filter(t=>(t.players||[]).length>=2).length>=2;
   app.innerHTML=`
+  <div class="sec dom">J&amp;K in BCCI domestic cricket</div>
+  <p class="small muted" style="margin:0 0 14px">Ranji Trophy, Syed Mushtaq Ali, Vijay Hazare &amp; more. Updated after every match. For club cricket, see <a href="#local">Local club cricket</a>.</p>
   ${live.length?`<h2>Live now</h2><div class="grid" style="margin-bottom:18px">${live.map(matchCard).join("")}</div>`:""}
   ${up.length?`<h2>Upcoming</h2><div class="grid" style="margin-bottom:18px">${up.slice(0,4).map(matchCard).join("")}</div>${up.length>4?`<p class="small" style="margin:-8px 0 18px"><a href="#tour-${esc(slug(up[0].tournament))}">See all upcoming fixtures →</a></p>`:""}`:""}
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:18px">
@@ -396,7 +410,7 @@ function bindP(root){root.querySelectorAll("[data-p]").forEach(e=>e.onclick=ev=>
 /* ----- teams ----- */
 function vTeams(app){
   const ts=Object.values(S.teams).filter(t=>!t.local).sort((a,b)=>a.name.localeCompare(b.name));
-  app.innerHTML=`<div class="row sp" style="margin-bottom:12px"><h2 style="margin:0">Teams</h2>${S.canEdit?'<button class="btn" id="nt">+ New team</button>':""}</div>
+  app.innerHTML=`<div class="sec dom">BCCI domestic</div><div class="row sp" style="margin-bottom:12px"><h2 style="margin:0">Teams</h2>${S.canEdit?'<button class="btn" id="nt">+ New team</button>':""}</div>
   ${ts.length?`<div class="grid">${ts.map(t=>`<div class="card mc" data-go="team-${esc(t.id)}" style="margin:0"><div class="row sp"><b style="font-size:16px">${esc(t.name)}</b><span class="tag">${esc(t.short||"")}</span></div><div class="small muted" style="margin-top:6px">${esc(t.district||"J&K")} · ${(t.players||[]).length} players</div></div>`).join("")}</div>`:`<div class="card empty">No teams yet.</div>`}`;
   bindGo(app);
   const nt=$("#nt");if(nt)nt.onclick=()=>teamForm();
@@ -654,7 +668,7 @@ function vMatch(app,r){
   else if(m.toss&&idx===0)status=`<div class="small muted" style="margin-top:8px">${esc(tn(m.toss.w))} won the toss and chose to ${esc(m.toss.d)}</div>`;
   const tab=S.mTab;
   app.innerHTML=`<div class="card">
-    <div class="row sp"><span class="small muted">${m.local?`<a href="#local">Local cricket</a> / ${esc(m.tournament||"Friendly")}`:`<a href="#home">Matches</a> / <a href="#tour-${esc(slug(m.tournament))}">${esc(m.tournament)}</a>`} · ${fdate(m.date)}${m.venue?" · "+esc(m.venue):""}${m.overs?` · ${m.overs} overs`:" · Multi-day"}</span>${live?'<span class="tag live">Live</span>':'<span class="tag">Result</span>'}</div>
+    <div class="row sp"><span class="small muted">${m.local?`<a href="#local">Local cricket</a> / ${esc(m.tournament||"Friendly")}`:`<a href="#home">Matches</a> / <a href="#tour-${esc(slug(m.tournament))}">${esc(m.tournament)}</a>`} · ${fdate(m.date)}${m.venue?" · "+esc(m.venue):""}${m.overs?` · ${m.overs} overs`:" · Multi-day"}</span><span><span class="tag ${m.local?"loc":"dom"}">${m.local?"Local club":"Domestic"}</span> ${live?'<span class="tag live">Live</span>':'<span class="tag">Result</span>'}</span></div>
     ${m.local&&m.scorer?`<div class="small muted" style="margin-top:6px">Scored by ${esc(m.scorer)}</div>`:""}${m.src?`<div class="small muted" style="margin-top:6px">Imported scorecard · source: <a href="${esc(m.src)}" target="_blank" rel="noopener">${esc(m.srcName||"match report")}</a></div>`:""}
     <div class="tline" style="margin-top:10px"><b style="font-size:16px">${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
     <div class="tline"><b style="font-size:16px">${esc(tn(m.teamB))}</b><span class="score">${teamScore(m,m.teamB)}</span></div>${status}
@@ -820,7 +834,7 @@ function vLocal(app){
   const inD=m=>!D||(S.teams[m.teamA]||{}).district===D||(S.teams[m.teamB]||{}).district===D;
   const mine=ms.filter(m=>m.status==="live"&&canScoreMatch(m));
   const tabsHtml=[["matches","Matches"],["potm","⭐ Player of the Month"],["teams","Teams"]].map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
-  app.innerHTML=`<div class="card"><h2 style="margin:0;font-size:22px">🏏 Local cricket in J&amp;K</h2><div class="small muted" style="margin-top:4px">Score your club match live. No sign-up needed.</div>
+  app.innerHTML=`<div class="sec loc">Local club cricket</div><div class="card"><h2 style="margin:0;font-size:22px">🏏 Local cricket in J&amp;K</h2><div class="small muted" style="margin-top:4px">Score your club match live. No sign-up needed.</div>
     ${AUTH.enabled?`<div style="margin-top:14px"><button class="btn" id="lnm" style="font-size:16px;padding:14px 22px">▶ Start scoring a match</button></div>`:'<p class="small muted" style="margin:12px 0 0">Club scoring is being set up.</p>'}
     ${mine.length?`<div class="note" style="margin-top:14px">You're scoring: ${mine.map(m=>`<a href="#match-${esc(m.id)}"><b>${esc(tn(m.teamA))} vs ${esc(tn(m.teamB))}</b></a>`).join(", ")}. Tap to continue.</div>`:""}
     ${dists.length?`<div style="margin-top:12px;max-width:220px"><label>District</label><select id="ldist"><option value="">All of J&amp;K</option>${dists.map(d=>`<option ${D===d?"selected":""}>${esc(d)}</option>`).join("")}</select></div>`:""}</div>
@@ -879,7 +893,7 @@ function outcome(m){
 function vTours(app){
   const ts=allTours();
   const ms=Object.values(S.matches);
-  app.innerHTML=`<h2>Domestic tournaments</h2><p class="small muted" style="margin-top:-6px">Tap a tournament to see its matches, points table and top performers.</p>
+  app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2>Domestic tournaments</h2><p class="small muted" style="margin-top:-6px">Tap a tournament to see its matches, points table and top performers.</p>
   <div class="grid">${ts.map(t=>{const tm=ms.filter(m=>m.tournament===t.n);const live=tm.filter(m=>m.status==="live").length;
     return`<div class="card mc" data-go="tour-${esc(slug(t.n))}" style="margin:0"><div class="row sp"><span style="font-size:24px">${t.i}</span>${live?`<span class="tag live">${live} live</span>`:`<span class="tag">${esc(t.f)}</span>`}</div>
      <div style="font-weight:800;font-size:16px;margin-top:8px">${esc(t.n)}</div><div class="small muted" style="margin-top:3px">${esc(t.d)}</div>
@@ -949,7 +963,7 @@ function vLeaders(app){
   const list=(title,arr,val,sub)=>`<div class="card" style="margin:0"><h3>${title}</h3>${arr.length?arr.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span> <span class="small muted">${esc(sub(p))}</span></span><span class="v">${val(p)}</span></div>`).join(""):'<div class="small muted">Not enough data yet</div>'}</div>`;
   const hs=[];for(const m of matchFilter(S.lbF))for(const inn of m.innings||[]){const c=calc(inn);for(const id of c.order){const x=c.bat[id];if(x.b||x.r)hs.push({id,r:x.r,b:x.b,no:!x.out,vs:tsn(inn.bowl)});}}
   hs.sort((a,b)=>b.r-a.r||a.b-b.b);
-  app.innerHTML=`<h2>Leaderboards</h2>${filterBar("lf")}${partialNote()}
+  app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2>Leaderboards</h2>${filterBar("lf")}${partialNote()}
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr))">
    ${list("🏆 Most runs",st.filter(p=>p.r>0).sort((a,b)=>b.r-a.r).slice(0,10),p=>p.r,p=>`${p.inn} inns · avg ${fmt(p.avg)}`)}
    ${list("🎯 Most wickets",st.filter(p=>p.w>0).sort((a,b)=>b.w-a.w||a.br-b.br).slice(0,10),p=>p.w,p=>`${ov(p.bb)} ov · econ ${fmt(p.eco)}`)}
@@ -969,7 +983,8 @@ function vPlayers(app){
   const q=(S.pq||"").toLowerCase();
   const ps=Object.values(S.players).filter(p=>!(S.teams[p.teamId]||{}).local).filter(p=>!q||p.name.toLowerCase().includes(q)||p.team.toLowerCase().includes(q))
     .map(p=>({...p,s:st[p.id]||{m:0,inn:0,r:0,hs:0,avg:null,sr:null,w:0,eco:null}})).sort((a,b)=>b.s.r-a.s.r||b.s.w-a.s.w||a.name.localeCompare(b.name));
-  app.innerHTML=`<h2>Players</h2>${filterBar("pf")}
+  app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2 style="margin-bottom:4px">Season stats</h2>
+   <p class="small muted" style="margin:0 0 14px">J&amp;K players in Ranji Trophy, Syed Mushtaq Ali, Vijay Hazare, Irani Cup &amp; other BCCI tournaments. Local club stats are under <a href="#local">Local club cricket → Player of the Month</a>.</p>${filterBar("pf")}
    <input id="pq" placeholder="Search player or team…" value="${esc(S.pq||"")}" style="margin-bottom:12px">
    <div class="card scroll"><table><thead><tr><th class="l">Player</th><th>M</th><th>Inns</th><th>Runs</th><th>HS</th><th>Avg</th><th>SR</th><th>Wkts</th><th>Econ</th></tr></thead><tbody>
    ${ps.map(p=>`<tr><td class="l"><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span><div class="small muted">${esc(p.team)} · ${esc(p.role||"")}</div></td><td>${p.s.m}</td><td>${p.s.inn}</td><td><b>${p.s.r}</b></td><td>${p.s.hs}${p.s.hsNo?"*":""}</td><td>${fmt(p.s.avg)}</td><td>${fmt(p.s.sr,1)}</td><td><b>${p.s.w}</b></td><td>${fmt(p.s.eco)}</td></tr>`).join("")||'<tr><td colspan="9" class="empty">No players yet</td></tr>'}
