@@ -108,6 +108,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
     <a href="#stats" data-v="stats">Stats</a>
     <a href="#leaders" data-v="leaders">Leaderboards</a>
     <a href="#teams" data-v="teams">Teams</a>
+    <a href="#squads" data-v="squads">Squads</a>
     <span class="nsep"></span>
     <a href="#local" data-v="local" class="nloc">🏏 Local club cricket</a>
   </nav>
@@ -200,6 +201,7 @@ const TOURS=[
  {n:"Senior Women's One Day Trophy",f:"Women · 50 overs",o:50,i:"👩",d:"Women's national one-day"},
  {n:"Senior Women's T20 Trophy",f:"Women · 20 overs",o:20,i:"👩",d:"Women's national T20"},
  {n:"Women's U23 T20 Trophy",f:"Women U-23 · 20 overs",o:20,i:"👩",d:"Women's U-23 national T20"},
+ {n:"Women's U19 T20 Trophy",f:"Women U-19 · 20 overs",o:20,i:"👩",d:"Women's U-19 national T20"},
  {n:"JKCA League",f:"Local",o:20,i:"🏔️",d:"J&K Cricket Association local cricket"},
 ];
 const jkSq=m=>{const q=m&&m.squad;if(!q)return [];return q["t-jk"]||Object.values(q)[0]||[];};
@@ -361,7 +363,7 @@ function closeModal(){$("#modal").classList.remove("on");$("#sheet").innerHTML="
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
 
 /* ---------- routing ---------- */
-function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};if(h==="players")return{v:"stats"};return{v:["leaders","stats","teams","newmatch","tournaments","local"].includes(h)?h:"home"};}
+function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};if(h==="players")return{v:"stats"};return{v:["leaders","stats","teams","squads","newmatch","tournaments","local"].includes(h)?h:"home"};}
 window.addEventListener("hashchange",()=>{S.mTab="live";if(location.hash.startsWith("#tour-")&&location.hash!==S._lastTour){S.tSeason=undefined;S._lastTour=location.hash;}if(location.hash!=="#newmatch")S.prefMatch=null;if(!location.hash.startsWith("#tour-"))S.tTab="matches";render();window.scrollTo(0,0);});
 
 /* ---------- views ---------- */
@@ -371,7 +373,7 @@ function render(){
   const app=$("#app");
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
   if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
-  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vTeams,team:vTeam,match:vMatch,newmatch:vQuick,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
+  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vTeams,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
   V(app,r);
 }
 
@@ -413,6 +415,42 @@ function vHome(app){
 function bindP(root){root.querySelectorAll("[data-p]").forEach(e=>e.onclick=ev=>{ev.stopPropagation();openPlayer(e.dataset.p);});}
 
 /* ----- teams ----- */
+
+/* ----- JKCA squads by category ----- */
+const SQ_CATS=[
+ {k:"Senior Men",i:"🏆",t:["Ranji Trophy","Syed Mushtaq Ali Trophy","Vijay Hazare Trophy"]},
+ {k:"Under-23 Men",i:"🎓",t:["CK Nayudu Trophy","Men's U23 State A Trophy"]},
+ {k:"Under-19 Men",i:"🌱",t:["Cooch Behar Trophy","Vinoo Mankad Trophy"]},
+ {k:"Under-16 Men",i:"🧒",t:["Vijay Merchant Trophy"]},
+ {k:"Women",i:"👩",t:["Senior Women's T20 Trophy","Senior Women's One Day Trophy","Women's U23 T20 Trophy","Women's U23 One Day Trophy","Women's U19 T20 Trophy","Women's U19 One Day Trophy"]},
+];
+function vSquads(app){
+  if(!S.sqData){app.innerHTML=`<div class="card empty">Loading squads…</div>`;
+    fetch("data.json",{cache:"no-cache"}).then(r=>r.json()).then(d=>{S.sqData=d.squads||[];if(route().v==="squads")vSquads(app);}).catch(()=>{S.sqData=[];if(route().v==="squads")vSquads(app);});return;}
+  const all=S.sqData;const seasons=[...new Set([CUR_SEASON,...all.map(q=>q.season)])].sort().reverse();
+  const se=S.sqSeason||CUR_SEASON,cat=S.sqCat||"";
+  const list=all.filter(q=>q.season===se);
+  const nm=id=>{const p=S.players[id];return p?p.name:id.replace(/^p-/,"").replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase());};
+  const card=q=>{const mark=id=>[q.captain===id?"C":"",q.vc===id?"VC":"",(q.wk||[]).includes(id)?"WK":""].filter(Boolean).join(", ");
+    return `<div class="card" style="margin:0 0 12px"><div class="row sp"><b>${esc(q.tournament)}</b><span class="tag">${esc(q.label||"Squad")}</span></div>
+    <div class="small muted" style="margin:4px 0 10px">${q.players.length} players${q.announced?" · announced "+esc(fdate(q.announced)):""}</div>
+    <div class="chips">${q.players.map(id=>{const mk=mark(id);return `<span class="tag link" data-p="${esc(id)}" style="text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;padding:6px 10px;${mk?"background:rgba(242,169,0,.18);color:inherit":""}">${esc(nm(id))}${mk?` <span class="muted">(${mk})</span>`:""}</span>`;}).join("")}</div>
+    ${q.note?`<p class="small muted" style="margin:10px 0 0">${esc(q.note)}</p>`:""}
+    ${q.src?`<p class="small muted" style="margin:6px 0 0">Source: <a href="${esc(q.src)}" target="_blank" rel="noopener">${esc(q.srcName||"link")}</a></p>`:""}</div>`;};
+  const cats=SQ_CATS.filter(c=>!cat||c.k===cat);
+  const body=cats.map(c=>{const rows=c.t.map(t=>{const qs=list.filter(q=>q.tournament===t).sort((a,b)=>(b.announced||"").localeCompare(a.announced||""));
+      if(qs.length)return qs.map(card).join("");
+      return se===CUR_SEASON?`<div class="card" style="margin:0 0 12px;padding:12px 16px"><div class="row sp"><b>${esc(t)}</b><span class="small muted">Not announced yet</span></div></div>`:"";}).join("");
+    return rows?`<h3 style="margin:18px 0 10px">${c.i} ${esc(c.k)}</h3>${rows}`:"";}).join("");
+  app.innerHTML=`<div class="sec dom">BCCI domestic</div><div class="row sp" style="margin-bottom:6px;flex-wrap:wrap;gap:8px"><h2 style="margin:0">J&amp;K squads</h2>
+   <select id="sqs">${seasons.map(x=>`<option value="${esc(x)}" ${x===se?"selected":""}>${esc(x)}${x===CUR_SEASON?" (current)":""}</option>`).join("")}</select></div>
+   <p class="small muted" style="margin:0 0 12px">Official JKCA squads for BCCI tournaments. New squads are added automatically when JKCA announces them. Tap a player for their stats.</p>
+   <div class="tabs"><button data-c="" class="${cat?"":"on"}">All</button>${SQ_CATS.map(c=>`<button data-c="${esc(c.k)}" class="${cat===c.k?"on":""}">${esc(c.k)}</button>`).join("")}</div>
+   ${body||`<div class="card empty">No squads for this season.</div>`}`;
+  $("#sqs").onchange=e=>{S.sqSeason=e.target.value;vSquads(app);};
+  app.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{S.sqCat=b.dataset.c;vSquads(app);});
+  bindP(app);
+}
 function vTeams(app){
   const ts=Object.values(S.teams).filter(t=>!t.local).sort((a,b)=>a.name.localeCompare(b.name));
   app.innerHTML=`<div class="sec dom">BCCI domestic</div><div class="row sp" style="margin-bottom:12px"><h2 style="margin:0">Teams</h2>${S.canEdit?'<button class="btn" id="nt">+ New team</button>':""}</div>
