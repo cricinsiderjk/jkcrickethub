@@ -1087,11 +1087,12 @@ function vTour(app,r){
 
 /* ----- players & leaderboards ----- */
 function filterBar(id){
+  if(S.lbF.t!=="cat:Senior Men"&&!TCATS[0].t.includes(S.lbF.t))S.lbF.t="cat:Senior Men";
   const dm=Object.values(S.matches).filter(m=>!m.local);
   const tours=[...new Set(dm.map(m=>m.tournament).filter(Boolean))].sort();
   const seasons=[...new Set([CUR_SEASON,...dm.map(m=>seasonOf(m.date)).filter(Boolean)])].sort().reverse();
   return`<div class="row" style="margin-bottom:14px" id="${id}"><div style="flex:1 1 160px"><label>Season</label><select name="s">${seasons.map(x=>`<option value="${x}" ${S.lbF.s===x?"selected":""}>${x}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="" ${S.lbF.s===""?"selected":""}>All seasons</option></select></div>
-   <div style="flex:1 1 200px"><label>Tournament</label><select name="t"><option value="">All tournaments</option>${TCATS.map(c=>`<optgroup label="${esc(c.k)}"><option value="cat:${esc(c.k)}" ${S.lbF.t==="cat:"+c.k?"selected":""}>All ${esc(c.k)}</option>${c.t.map(t=>`<option value="${esc(t)}" ${S.lbF.t===t?"selected":""}>${esc(t)}</option>`).join("")}</optgroup>`).join("")}${tours.filter(t=>!TCATS.some(c=>c.t.includes(t))).map(t=>`<option ${S.lbF.t===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div></div>`;
+   <div style="flex:1 1 200px"><label>Tournament</label><select name="t"><option value="cat:Senior Men" ${S.lbF.t==="cat:Senior Men"?"selected":""}>All senior tournaments</option>${TCATS[0].t.map(t=>`<option value="${esc(t)}" ${S.lbF.t===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div></div>`;
 }
 function bindFilter(id){const el=$("#"+id);el.querySelectorAll("select").forEach(s=>s.onchange=()=>{S.lbF[s.name]=s.value;render();});}
 function vLeaders(app){
@@ -1111,7 +1112,7 @@ function vLeaders(app){
   <div class="row" style="margin-top:14px"><button class="btn g" id="cp">Copy top 10 run-scorers for Instagram</button></div>`;
   bindFilter("lf");bindP(app);
   $("#cp").onclick=async()=>{const top=st.filter(p=>p.r>0).sort((a,b)=>b.r-a.r).slice(0,10);
-    const txt=`🏏 J&K top run-scorers${S.lbF.t?" – "+S.lbF.t.replace(/^cat:/,""):""}${S.lbF.s?" "+S.lbF.s:""}\n\n`+top.map((p,i)=>`${i+1}. ${pn(p.id)} – ${p.r} runs (${p.inn} inns, HS ${p.hs}${p.hsNo?"*":""})`).join("\n")+"\n\n#JKCricket #cricinsiderjk";
+    const txt=`🏏 J&K top run-scorers – ${S.lbF.t==="cat:Senior Men"?"Senior":S.lbF.t}${S.lbF.s?" "+S.lbF.s:""}\n\n`+top.map((p,i)=>`${i+1}. ${pn(p.id)} – ${p.r} runs (${p.inn} inns, HS ${p.hs}${p.hsNo?"*":""})`).join("\n")+"\n\n#JKCricket #cricinsiderjk";
     try{await navigator.clipboard.writeText(txt);toast("Copied");}catch(e){toast("Couldn't copy");}};
 }
 function vPlayers(app){
