@@ -147,7 +147,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
       A.uid=u?u.uid:null;A.name=u?(u.displayName||u.email||""):"";A.email=u?u.email||"":"";A.isAdmin=false;A.status=u?"none":"out";A.canScore=false;
       if(u){
         try{await fs.collection("meta").doc("admin").get();A.isAdmin=true;}catch(e){A.isAdmin=false;}
-        unsubMe=fs.collection("scorers").doc(u.uid).onSnapshot(d=>{A.status=d.exists?(d.data().approved?"approved":"pending"):"none";
+        unsubMe=fs.collection("allowedScorers").doc((u.email||"").toLowerCase()).onSnapshot(d=>{A.status=d.exists?"approved":"none";
           A.canScore=A.isAdmin||A.status==="approved";A.ready=true;A._emit();},()=>{A.canScore=A.isAdmin;A.ready=true;A._emit();});
       }else{A.ready=true;A._emit();}
     });
@@ -155,10 +155,9 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
   A.signIn=async()=>{const p=new firebase.auth.GoogleAuthProvider();
     try{await auth.signInWithPopup(p);}catch(e){if(e&&(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment"))await auth.signInWithRedirect(p);else throw e;}};
   A.signOut=()=>auth.signOut();
-  A.request=(name,club,district)=>fs.collection("scorers").doc(A.uid).set({name,club,district,email:A.email,approved:false,requested:new Date().toISOString()});
-  A.watchScorers=cb=>fs.collection("scorers").onSnapshot(q=>{const list=[];q.forEach(d=>list.push(Object.assign({uid:d.id},d.data())));cb(list);},()=>cb([]));
-  A.approve=(uid,ok)=>fs.collection("scorers").doc(uid).update({approved:!!ok,decided:new Date().toISOString()});
-  A.remove=uid=>fs.collection("scorers").doc(uid).delete();
+  A.watchScorers=cb=>fs.collection("allowedScorers").onSnapshot(q=>{const list=[];q.forEach(d=>list.push(Object.assign({email:d.id},d.data())));cb(list);},()=>cb([]));
+  A.addScorer=(email,name,club,district)=>fs.collection("allowedScorers").doc(email.trim().toLowerCase()).set({name,club,district,added:new Date().toISOString()});
+  A.removeScorer=email=>fs.collection("allowedScorers").doc(email).delete();
 })();
 </script>
 <script>
@@ -681,13 +680,9 @@ function vLocal(app){
   const D=S.lDist||"";
   const inD=m=>!D||(S.teams[m.teamA]||{}).district===D||(S.teams[m.teamB]||{}).district===D;
   let gate="";
-  if(AUTH.enabled&&AUTH.ready&&AUTH.status==="none"&&!AUTH.isAdmin)gate=`<div class="card"><h3>Become a club scorer</h3><p class="small muted" style="margin-top:-4px">Tell us who you are. Once approved, you can add your club's teams and score matches live.</p>
-     <form id="rq" class="fgrid"><div><label>Your name *</label><input name="n" required maxlength="50" value="${esc(AUTH.name)}"></div><div><label>Club *</label><input name="c" required maxlength="60" placeholder="e.g. Sopore Strikers"></div>
-     <div><label>District *</label><input name="d" list="dl2" required maxlength="30"></div><div style="align-self:end"><button class="btn">Request access</button></div></form>
-     <datalist id="dl2">${DIS.map(d=>`<option>${esc(d)}</option>`).join("")}</datalist></div>`;
-  else if(AUTH.status==="pending"&&!AUTH.isAdmin)gate=`<div class="note" style="margin-bottom:14px">⏳ Your scorer request is waiting for approval from @cricinsiderjk. This page updates by itself once you're approved.</div>`;
+  if(AUTH.enabled&&AUTH.ready&&AUTH.status==="none"&&!AUTH.isAdmin)gate=`<div class="note" style="margin-bottom:14px">You're signed in as <b>${esc(AUTH.email)}</b>, but this account isn't a club scorer. To score matches, message <a href="https://instagram.com/cricinsiderjk" target="_blank" rel="noopener">@cricinsiderjk</a> and ask to be added with this Gmail.</div>`;
   const tabsHtml=[["matches","Matches"],["potm","⭐ Player of the Month"],["teams","Teams"]].concat(AUTH.isAdmin?[["scorers","Scorers"]]:[]).map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
-  app.innerHTML=`<div class="card"><div class="row sp"><div><h2 style="margin:0;font-size:22px">🏏 Local cricket in J&amp;K</h2><div class="small muted" style="margin-top:4px">Club &amp; tournament matches, scored live by approved club scorers</div></div>${authBox()}</div>
+  app.innerHTML=`<div class="card"><div class="row sp"><div><h2 style="margin:0;font-size:22px">🏏 Local cricket in J&amp;K</h2><div class="small muted" style="margin-top:4px">Club &amp; tournament matches, scored live by official club scorers</div></div>${authBox()}</div>
     ${AUTH.canScore?`<div class="row" style="margin-top:14px"><button class="btn" id="lnm" ${ts.length<2?"disabled":""}>+ Start a match</button><button class="btn g" id="lnt">+ Add team</button>${ts.length<2?'<span class="small muted">Add at least 2 teams to start a match.</span>':""}</div>`:""}
     ${dists.length?`<div style="margin-top:12px;max-width:220px"><label>District</label><select id="ldist"><option value="">All of J&amp;K</option>${dists.map(d=>`<option ${D===d?"selected":""}>${esc(d)}</option>`).join("")}</select></div>`:""}</div>
   ${gate}<div class="tabs">${tabsHtml}</div><div id="lb"></div>`;
@@ -727,14 +722,17 @@ function vLocal(app){
     lb.innerHTML=`<div class="card"><div class="empty">Loading scorers…</div></div>`;
     if(S._unsubSc)S._unsubSc();
     S._unsubSc=AUTH.watchScorers(list=>{if(route().v!=="local"||S.lTab!=="scorers")return;
-      const pend=list.filter(x=>!x.approved),ok=list.filter(x=>x.approved);
-      const row=(x,btns)=>`<div class="pl"><div><b>${esc(x.name||"")}</b> <span class="small muted">· ${esc(x.club||"")} · ${esc(x.district||"")}</span><div class="small muted">${esc(x.email||"")}</div></div><div class="row">${btns}</div></div>`;
       const box=$("#lb");if(!box)return;
-      box.innerHTML=`<div class="card"><h3>Waiting for approval (${pend.length})</h3>${pend.map(x=>row(x,`<button class="btn sm" data-ok="${esc(x.uid)}">Approve</button><button class="btn d sm" data-rm="${esc(x.uid)}">Reject</button>`)).join("")||'<div class="small muted">No pending requests.</div>'}</div>
-        <div class="card"><h3>Approved scorers (${ok.length})</h3>${ok.map(x=>row(x,`<button class="btn d sm" data-off="${esc(x.uid)}">Remove access</button>`)).join("")||'<div class="small muted">None yet.</div>'}</div>`;
-      box.querySelectorAll("[data-ok]").forEach(b=>b.onclick=()=>AUTH.approve(b.dataset.ok,true).then(()=>toast("Approved")).catch(()=>toast("Couldn't approve")));
-      box.querySelectorAll("[data-off]").forEach(b=>b.onclick=()=>AUTH.approve(b.dataset.off,false).then(()=>toast("Access removed")).catch(()=>toast("Failed")));
-      box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>AUTH.remove(b.dataset.rm).then(()=>toast("Request rejected")).catch(()=>toast("Failed")));});
+      list.sort((x,y)=>(x.name||x.email).localeCompare(y.name||y.email));
+      box.innerHTML=`<div class="card"><h3>Add a club scorer</h3><p class="small muted" style="margin-top:-4px">Enter the Gmail they'll sign in with. They can then add teams and score matches straight away.</p>
+        <form id="asf" class="fgrid"><div><label>Gmail *</label><input name="e" type="email" required maxlength="80" placeholder="name@gmail.com"></div><div><label>Name *</label><input name="n" required maxlength="50"></div>
+        <div><label>Club</label><input name="c" maxlength="60"></div><div><label>District</label><input name="d" list="dl3" maxlength="30"></div><div style="align-self:end"><button class="btn">Add scorer</button></div></form>
+        <datalist id="dl3">${DIS.map(d=>`<option>${esc(d)}</option>`).join("")}</datalist></div>
+        <div class="card"><h3>Club scorers (${list.length})</h3>${list.map(x=>`<div class="pl"><div><b>${esc(x.name||"")}</b> <span class="small muted">${x.club?"· "+esc(x.club):""}${x.district?" · "+esc(x.district):""}</span><div class="small muted">${esc(x.email)}</div></div><button class="btn d sm" data-rm="${esc(x.email)}">Remove access</button></div>`).join("")||'<div class="small muted">No scorers yet.</div>'}</div>`;
+      const fm=$("#asf");fm.onsubmit=e=>{e.preventDefault();const f=fm.elements;const em=f.e.value.trim().toLowerCase();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){toast("Enter a valid email");return;}
+        AUTH.addScorer(em,f.n.value.trim(),f.c.value.trim(),f.d.value.trim()).then(()=>toast("Scorer added")).catch(()=>toast("Couldn't add scorer"));};
+      box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="Tap again to remove";return;}
+        AUTH.removeScorer(b.dataset.rm).then(()=>toast("Access removed")).catch(()=>toast("Couldn't remove"));});});
   }
   bindGo(app);bindP(app);
   app.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{S.lTab=b.dataset.t;render();});
@@ -743,7 +741,6 @@ function vLocal(app){
   const sout=$("#sout");if(sout)sout.onclick=()=>AUTH.signOut();
   const lnm=$("#lnm");if(lnm)lnm.onclick=()=>location.hash="newmatch";
   const lnt=$("#lnt");if(lnt)lnt.onclick=()=>teamForm(null,true);
-  const rq=$("#rq");if(rq)rq.onsubmit=e=>{e.preventDefault();const f=rq.elements;AUTH.request(f.n.value.trim(),f.c.value.trim(),f.d.value.trim()).then(()=>toast("Request sent")).catch(()=>toast("Couldn't send request"));};
 }
 
 /* ----- tournaments ----- */

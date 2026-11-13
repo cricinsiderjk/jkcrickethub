@@ -2,30 +2,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    // Replace with YOUR Google email (the account that approves scorers).
+    // Replace with YOUR Google email (the account that adds scorers).
     function isAdmin() { return signedIn() && request.auth.token.email_verified == true
                           && request.auth.token.email in ['YOUR_EMAIL@gmail.com']; }
     function isScorer() {
-      return isAdmin() || (signedIn()
-        && exists(/databases/$(database)/documents/scorers/$(request.auth.uid))
-        && get(/databases/$(database)/documents/scorers/$(request.auth.uid)).data.approved == true);
+      return isAdmin() || (signedIn() && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/allowedScorers/$(request.auth.token.email.lower())));
     }
-    // Used by the site to recognise the admin.
     match /meta/{doc} { allow read: if isAdmin(); }
-    // Scorer requests: a signed-in user can request (approved=false); only the admin approves.
-    match /scorers/{uid} {
-      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow list: if isAdmin();
-      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.approved == false;
-      allow update, delete: if isAdmin();
+    // Club scorers, added by the admin by Gmail address.
+    match /allowedScorers/{email} {
+      allow get: if signedIn() && (request.auth.token.email.lower() == email || isAdmin());
+      allow list, create, update, delete: if isAdmin();
     }
-    // Local teams: everyone reads; approved scorers add/edit; admin deletes.
     match /localTeams/{id} {
       allow read: if true;
       allow create, update: if isScorer();
       allow delete: if isAdmin();
     }
-    // Local matches: everyone reads; approved scorers create their own; only the creator or admin edits/deletes.
     match /localMatches/{id} {
       allow read: if true;
       allow create: if isScorer() && request.resource.data.createdBy == request.auth.uid;
