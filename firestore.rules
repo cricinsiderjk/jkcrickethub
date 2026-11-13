@@ -2,28 +2,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    // Replace with YOUR Google email (the account that adds scorers).
-    function isAdmin() { return signedIn() && request.auth.token.email_verified == true
-                          && request.auth.token.email in ['YOUR_EMAIL@gmail.com']; }
-    function isScorer() {
-      return isAdmin() || (signedIn() && request.auth.token.email_verified == true
-        && exists(/databases/$(database)/documents/allowedScorers/$(request.auth.token.email.lower())));
-    }
+    function isAdmin() { return signedIn() && request.auth.token.email == 'YOUR_EMAIL@gmail.com'; }
     match /meta/{doc} { allow read: if isAdmin(); }
-    // Club scorers, added by the admin by Gmail address.
-    match /allowedScorers/{email} {
-      allow get: if signedIn() && (request.auth.token.email.lower() == email || isAdmin());
-      allow list, create, update, delete: if isAdmin();
-    }
     match /localTeams/{id} {
       allow read: if true;
-      allow create, update: if isScorer();
+      allow create, update: if signedIn();
       allow delete: if isAdmin();
     }
     match /localMatches/{id} {
       allow read: if true;
-      allow create: if isScorer() && request.resource.data.createdBy == request.auth.uid;
-      allow update, delete: if isAdmin() || (isScorer() && resource.data.createdBy == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isAdmin() || (signedIn() && resource.data.createdBy == request.auth.uid);
     }
   }
 }
