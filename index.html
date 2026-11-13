@@ -570,6 +570,22 @@ function cdHtml(iso){return`<div class="cd" data-cd="${esc(iso)}">${["days","hrs
 function tickCd(){document.querySelectorAll("[data-cd]").forEach(el=>{let d=Math.max(0,Date.parse(el.dataset.cd)-Date.now())/1000;const v=[Math.floor(d/86400),Math.floor(d%86400/3600),Math.floor(d%3600/60),Math.floor(d%60)];
   el.querySelectorAll("b").forEach((b,i)=>b.textContent=String(v[i]).padStart(i?2:1,"0"));if(d<=0&&!el.dataset.done){el.dataset.done=1;setTimeout(()=>{if(route().v==="home")render();},1500);}});}
 setInterval(tickCd,1000);
+function followPicker(){
+  const ord=["t-jk","t-jk-u23","t-jk-u19","t-jk-u16","t-jkw","t-jkw-u23","t-jkw-u19"];
+  const jk=ord.map(id=>S.teams[id]).filter(Boolean);
+  const loc=Object.values(S.teams).filter(t=>t.local&&t.kind!=="player").sort((a,b)=>(b.registered?1:0)-(a.registered?1:0)||a.name.localeCompare(b.name));
+  const row=t=>`<div class="pp-it" data-fid="${esc(t.id)}" data-q="${esc((t.name+" "+(t.district||"")).toLowerCase())}"><div class="pp-av" style="background:${t.local?`hsl(${ppHue(t.id)},55%,42%)`:"#0e5c48"}">${esc(ppInit(t.name))}</div><div style="min-width:0;flex:1"><div class="pp-nm">${esc(t.name)}${t.registered?' <span style="color:#0e5c48">✓</span>':""}</div><div class="pp-sub">${t.local?esc(t.district||"Local club")+" · "+(t.players||[]).length+" players":"J&amp;K state team"}</div></div>${favId()===t.id?'<b style="color:#f2a900">★</b>':""}</div>`;
+  openModal(`<div class="row sp"><h2 style="margin:0;font-size:20px">☆ Follow your club</h2><button class="btn g sm" id="cx">Close</button></div>
+   <input id="fq" placeholder="Search your club or district" autocomplete="off" style="margin:12px 0 6px">
+   <div id="fl" style="max-height:60vh;overflow:auto">${loc.length?`<div class="small muted" style="margin:8px 4px 4px;font-weight:700">LOCAL CLUBS</div>${loc.map(row).join("")}`:""}<div class="small muted" style="margin:12px 4px 4px;font-weight:700">J&amp;K TEAMS</div>${jk.map(row).join("")}</div>
+   <p class="small muted" style="margin:10px 0 0">Club not here? <a href="#register" data-close>Register it free</a>, or it appears after its first scored match.</p>
+   ${favId()?`<button class="btn g sm" id="funf" style="margin-top:8px">Stop following</button>`:""}`,sh=>{
+    sh.querySelector("#cx").onclick=closeModal;
+    const q=sh.querySelector("#fq");q.oninput=()=>{const v=q.value.trim().toLowerCase();sh.querySelectorAll("[data-fid]").forEach(e=>e.style.display=!v||e.dataset.q.includes(v)?"":"none");};
+    sh.querySelectorAll("[data-fid]").forEach(e=>e.onclick=()=>{setFav(e.dataset.fid);closeModal();toast(`★ Following ${tn(e.dataset.fid)}`);render();});
+    const u=sh.querySelector("#funf");if(u)u.onclick=()=>{setFav("");closeModal();toast("Unfollowed");render();};
+    const rg=sh.querySelector("[data-close]");if(rg)rg.onclick=()=>closeModal();});
+}
 function vStart(app){
   const all=Object.values(S.matches);
   const dom=all.filter(m=>!m.local&&jkIn(m));
@@ -604,8 +620,9 @@ function vStart(app){
   const favLine=m=>m?(m.status==="done"?esc(m.result||"Result"):m.status==="live"||inPlay(m)?"🔴 Live now":"🕒 "+esc(ftime(m.start)||fdate(m.date))):"";
   app.innerHTML=`
   ${hero}
+  ${!fav?`<div class="card" id="hfol" style="margin:0 0 4px;display:flex;gap:12px;align-items:center;cursor:pointer;border:2px dashed #f2a900"><span style="font-size:28px">☆</span><div style="flex:1"><b style="font-size:16px">Follow your club</b><div class="small muted">Its live score, last result and next match will show first, every time you open CricInsider.</div></div><span class="btn sm">Pick</span></div>`:""}
   ${liveL.length?`<div class="hh"><h3><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e53935;margin-right:6px;animation:pulse 1.4s infinite"></span>Local matches live</h3><a href="#local">All local ›</a></div><div class="hsc">${liveL.slice(0,10).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</span><b>${(()=>{const i=curInn(m);if(!i)return"–";const c=calc(i);return c.runs+"/"+c.wkts;})()}</b><span>${esc((S.teams[m.teamA]||{}).district||"")}</span></div>`).join("")}</div>`:""}
-  ${fav?`<div class="hh"><h3>★ ${esc(fav.name)}</h3><a href="#team-${esc(fav.id)}">Team page ›</a></div>
+  ${fav?`<div class="hh"><h3>★ ${esc(fav.name)}</h3><span><a href="#team-${esc(fav.id)}">Club page ›</a> <a href="#home" id="hchg" class="small muted" style="margin-left:8px">Change</a></span></div>
     <div class="card" style="margin:0">${favLive?`<div class="hrow" data-go="match-${esc(favLive.id)}" style="cursor:pointer"><b>🔴 Playing now vs ${esc(tn(favLive.teamA===fav.id?favLive.teamB:favLive.teamA))}</b><span>›</span></div>`:""}
      ${favLast?`<div class="hrow" data-go="match-${esc(favLast.id)}" style="cursor:pointer;padding:6px 0"><span><span class="small muted">Last</span> · vs ${esc(tn(favLast.teamA===fav.id?favLast.teamB:favLast.teamA))}<div class="small res">${favLine(favLast)}</div></span><span class="muted">›</span></div>`:""}
      ${favNext?`<div class="hrow" data-go="match-${esc(favNext.id)}" style="cursor:pointer;padding:6px 0"><span><span class="small muted">Next</span> · vs ${esc(tn(favNext.teamA===fav.id?favNext.teamB:favNext.teamA))}<div class="small">${favLine(favNext)}</div></span><span class="muted">›</span></div>`:""}
@@ -621,12 +638,11 @@ function vStart(app){
     ${topW?`<div class="hrow" style="padding:6px 0;border-top:1px solid var(--line,#eee)"><span>🎯 <span class="link" data-p="${esc(topW.id)}" style="font-weight:600">${esc(pn(topW.id))}</span> <span class="small muted">most wickets</span></span><b>${topW.w}</b></div>`:""}
    </div>`:""}
   ${up.length>1?`<div class="hh"><h3>Coming up</h3><a href="#matches">All matches ›</a></div><div class="hsc">${up.filter(m=>m!==nextSr).slice(0,8).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(CAT_SH[catOf(m.tournament)]||m.tournament)}</span><b style="font-size:15px;margin:4px 0">${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</b><span>${esc(ftime(m.start))}</span></div>`).join("")}</div>`:""}
-  ${!fav?`<div class="card" style="margin-top:16px;display:flex;gap:12px;align-items:center"><span style="font-size:26px">☆</span><div style="flex:1"><b>Follow your team</b><div class="small muted">Its live score, last result and next match will show first, right here.</div></div><a class="btn g sm" href="#local" id="hfol" style="text-decoration:none">Pick a team</a></div>`:""}
   ${!PUSH.sub&&PUSH.cfg.worker&&(hm||!nextSr)?`<div class="card" style="margin-top:16px;display:flex;gap:12px;align-items:center"><span style="font-size:26px">🔔</span><div style="flex:1"><b>Never miss a J&amp;K match</b><div class="small muted">Get an alert when J&amp;K start and when the result is in.</div></div><button class="btn sm" id="halert2">Turn on</button></div>`:""}`;
   tickCd();bindGo(app);bindP(app);
   ["#halert","#halert2"].forEach(x=>{const b=$(x);if(b)b.onclick=ev=>{ev.stopPropagation();PUSH.open();};});
   const hp=$("#hpotm");if(hp)hp.onclick=()=>{S.lTab="potm";};
-  const hf=$("#hfol");if(hf)hf.onclick=()=>{S.lTab="teams";toast("Open a team and tap ☆ Follow");};
+  const hf=$("#hfol");if(hf)hf.onclick=followPicker;const hc=$("#hchg");if(hc)hc.onclick=e=>{e.preventDefault();followPicker();};
 }
 function vHome(app){
   const hc=S.hCat||"";
@@ -736,7 +752,7 @@ function vTeam(app,r){
   const ps=jk?teamSeasonPlayers(t,se==="all"?"":se):(t.players||[]);
   const ms=jk?teamSeasonMs(t,se==="all"?"":se):Object.values(S.matches).filter(m=>m.teamA===t.id||m.teamB===t.id);
   app.innerHTML=`<div class="card"><div class="row sp"><div><div class="small muted">${t.local?'<a href="#local">Local cricket</a> / Teams':'<a href="#squads">Squads</a>'} /</div><h2 style="margin:4px 0 2px;font-size:22px">${esc(t.name)}${t.local&&t.registered?' <span class="tag" style="background:#e3f3ec;color:#0e5c48;vertical-align:4px">✓ Registered club</span>':""}</h2><div class="small muted">${esc(t.district||"J&K")} · ${ps.length} players · ${ms.length} matches${jk?` · <select id="tss" style="width:auto;padding:4px 8px;font-size:13px">${teamSeasons().map(x=>`<option value="${esc(x)}" ${x===se?"selected":""}>${esc(x)}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="all" ${se==="all"?"selected":""}>All seasons</option></select>`:""}</div></div>
-   <button class="btn ${favId()===t.id?"":"g"} sm" id="fol" style="margin-top:10px">${favId()===t.id?"★ Following":"☆ Follow this team"}</button>
+   <button class="btn ${favId()===t.id?"":"g"} sm" id="fol" style="margin-top:10px">${favId()===t.id?"★ Following":"☆ Follow"}</button>
    ${t.local&&(t.ground||t.founded||t.captain||t.insta)?`<div class="small" style="margin-top:8px;line-height:1.8">${[t.ground?`🏟️ ${esc(t.ground)}`:"",t.founded?`📅 Since ${esc(t.founded)}`:"",t.captain?`🧢 Captain: ${esc(t.captain)}`:"",t.insta?`<a href="https://instagram.com/${esc(t.insta)}" target="_blank" rel="noopener">📸 @${esc(t.insta)}</a>`:""].filter(Boolean).join(" &nbsp;·&nbsp; ")}</div>`:""}
    ${t.local&&AUTH.enabled?(t.registered?((AUTH.isAdmin||(AUTH.uid&&t.createdBy===AUTH.uid))?`<a class="btn g sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">Edit club details</a>`:""):`<a class="btn sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">🏟️ Register this club</a>`):""}
    ${ce?`<div class="row"><button class="btn g sm" id="et">Edit</button>${!t.local||AUTH.isAdmin?'<button class="btn d sm" id="dt">Delete team</button>':""}</div>`:""}</div></div>
