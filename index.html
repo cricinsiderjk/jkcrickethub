@@ -94,12 +94,12 @@ th.l,td.l{text-align:left;white-space:normal}
 .ck{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}
 .res{font-weight:700;color:var(--acc)}
 .note{background:var(--acc2);border-radius:10px;padding:10px 12px;font-size:13.5px}
-.pp-box{position:absolute;z-index:60;background:var(--card,#fff);border:1px solid var(--line,#ddd);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:300px;overflow:auto;padding:4px}
+.pp-box{position:absolute;z-index:12;background:var(--card,#fff);border:1px solid var(--line,#ddd);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:300px;overflow:auto;padding:4px}
 .pp-it{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;cursor:pointer}.pp-it.on,.pp-it:hover{background:rgba(127,127,127,.14)}
 .pp-av{flex:0 0 34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;background:var(--acc,#0a7)}
 .pp-nm{font-weight:600}.pp-sub{font-size:12px;opacity:.7}.pp-new .pp-av{background:#888}
 input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90deg,transparent calc(100% - 26px),transparent 0),none}
-.pp-wrap{position:relative;flex:1 1 auto;display:flex}.pp-wrap input{flex:1 1 auto;width:100%}.pp-tick{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#2a9d5c;font-weight:700;pointer-events:none}
+.pp-wrap{position:relative;flex:1 1 auto;display:flex}.pp-wrap input{flex:1 1 auto;width:100%;padding-right:26px}.pp-tick{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#2a9d5c;font-weight:700;pointer-events:none}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -287,11 +287,11 @@ function ppOpen(inp){const v=inp.value.trim().replace(/\s+/g," ").toLowerCase();
   PP.inp=inp;PP.on=hits.length?0:PP.items.length-1;
   PP.box.innerHTML=(hits.length?"":`<div class="pp-sub" style="padding:6px 10px">No player with this name yet.</div>`)+PP.items.map((x,i)=>{if(x.nw!==undefined)return`<div class="pp-it pp-new" data-i="${i}"><div class="pp-av">+</div><div><div class="pp-nm">Add “${esc(x.nw)}”</div><div class="pp-sub">${exact?"A different player with the same name":"New player, gets their own profile"}</div></div></div>`;
     const p=S.players[x.id];const n=mc[x.id]||0;const cl=(p.teams||[]).map(tn).join(", ")||p.district||"No club yet";
-    return`<div class="pp-it" data-i="${i}"><div class="pp-av" style="background:hsl(${ppHue(x.id)},55%,42%)">${esc(ppInit(p.name))}</div><div style="min-width:0"><div class="pp-nm">${esc(p.name)}</div><div class="pp-sub">${esc(cl)} · ${n} match${n===1?"":"es"} · ${pcode(x.id)}</div></div></div>`;}).join("");
+    return`<div class="pp-it" data-i="${i}"><div class="pp-av" style="background:hsl(${ppHue(x.id)},55%,42%)">${esc(ppInit(p.name))}</div><div style="min-width:0"><div class="pp-nm">${esc(p.name)}</div><div class="pp-sub">${esc(cl)} · ${n} match${n===1?"":"es"} · <span style="white-space:nowrap">${pcode(x.id)}</span></div></div></div>`;}).join("");
   ppHi();const r=inp.getBoundingClientRect();Object.assign(PP.box.style,{left:(r.left+scrollX)+"px",top:(r.bottom+scrollY+4)+"px",width:Math.max(r.width,280)+"px"});}
 function ppHi(){if(!PP.box)return;[...PP.box.querySelectorAll(".pp-it")].forEach((e,i)=>{e.classList.toggle("on",+e.dataset.i===PP.on);if(+e.dataset.i===PP.on&&e.scrollIntoView)e.scrollIntoView({block:"nearest"});});}
 function ppPick(i){const x=PP.items[i],inp=PP.inp;if(!x||!inp)return;
-  if(x.nw!==undefined){inp.value=x.nw;delete inp.dataset.pid;inp.dataset.pnew="1";}else{inp.value=S.players[x.id].name;inp.dataset.pid=x.id;delete inp.dataset.pnew;}
+  if(x.nw!==undefined){inp.value=x.nw;delete inp.dataset.pid;inp.dataset.pnew="1";}else{inp.value=S.players[x.id].name;inp.dataset.pid=x.id;delete inp.dataset.pnew;const sel=inp.closest(".prow")&&inp.closest(".prow").querySelector("select"),rl=S.players[x.id].role;if(sel&&rl&&[...sel.options].some(o=>o.value===rl))sel.value=rl;}
   ppClose();ppMark(inp);PP.picking=true;try{inp.dispatchEvent(new Event("input",{bubbles:true}));}finally{PP.picking=false;}inp.dispatchEvent(new CustomEvent("pp-picked",{bubbles:true}));}
 function ppWrap(inp){if(inp.parentNode.classList.contains("pp-wrap"))return;const w=document.createElement("span");w.className="pp-wrap";inp.parentNode.insertBefore(w,inp);w.appendChild(inp);const t=document.createElement("span");t.className="pp-tick";w.appendChild(t);inp.setAttribute("autocomplete","off");ppMark(inp);}
 document.addEventListener("input",e=>{const i=e.target;if(PP.picking||!(i.classList&&i.classList.contains("pp")))return;
