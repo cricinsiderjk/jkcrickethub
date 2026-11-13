@@ -490,6 +490,78 @@ function vNewMatch(app){
     S.matches[m.id]=m;persist("matches/"+m.id,m);location.hash="match-"+m.id;};
 }
 
+/* ----- player of the match + PDF report ----- */
+function matchPOTM(m){
+  const P={};const g=id=>P[id]||(P[id]={id,r:0,b:0,bat:false,no:false,w:0,rc:0,bb:0,ct:0});
+  for(const inn of (m.innings||[])){const c=calc(inn);
+    for(const id of c.order){const x=c.bat[id];if(!x.b&&!x.out&&!(inn.balls||[]).some(b=>b.bat===id||b.ns===id))continue;const p=g(id);p.r+=x.r;p.b+=x.b;p.bat=true;p.no=!x.out;}
+    for(const id of c.bowlOrder){const x=c.bowl[id];if(!x.balls&&!x.w)continue;const p=g(id);p.w+=x.w;p.rc+=x.r;p.bb+=x.balls;}
+    for(const b of (inn.balls||[]))if((b.wk==="caught"||b.wk==="stumped")&&b.f)g(b.f).ct++;}
+  const o=outcome(m);const win=o&&o.type==="win"?o.w:null;
+  const teamOf=id=>{for(const t of Object.keys(m.xi||{}))if((m.xi[t]||[]).includes(id))return t;return null;};
+  const list=Object.values(P).map(p=>({...p,team:teamOf(p.id),pts:p.r+p.w*20+p.ct*10+(win&&teamOf(p.id)===win?5:0)})).sort((a,b)=>b.pts-a.pts||b.r-a.r||b.w-a.w);
+  return list[0]&&list[0].pts>0?list[0]:null;
+}
+function potmLine(p){const parts=[];if(p.bat)parts.push(`${p.r}${p.no?"*":""} (${p.b})`);if(p.bb||p.w)parts.push(`${p.w}/${p.rc} (${ov(p.bb)} ov)`);if(p.ct)parts.push(`${p.ct} catch${p.ct===1?"":"es"}`);return parts.join(" · ");}
+function loadScript(src){return new Promise((res,rej)=>{const el=document.createElement("script");el.src=src;el.onload=res;el.onerror=()=>rej(new Error("load "+src));document.head.appendChild(el);});}
+async function loadPdfLibs(){
+  if(!(window.jspdf&&window.jspdf.jsPDF))await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  if(!window.jspdf.jsPDF.API.autoTable)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+}
+async function matchPDF(m){
+  await loadPdfLibs();
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"pt",format:"a4"});
+  const W=doc.internal.pageSize.getWidth(),M=40;const G=[14,92,72],GOLD=[183,134,11],GREY=[104,114,128];
+  const clean=t=>String(t??"").replace(/[^\x20-\x7E]/g,c=>({"·":"-","–":"-","—":"-","†":"","…":"..."}[c]??""));
+  const A=tn(m.teamA),B=tn(m.teamB);
+  doc.setFillColor(...G);doc.rect(0,0,W,74,"F");
+  doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("CricInsider.jk",M,32);
+  doc.setFont("helvetica","normal");doc.setFontSize(10);doc.text("Match report - J&K local cricket",M,50);
+  doc.text(clean(new Date().toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})),W-M,32,{align:"right"});
+  let y=108;doc.setTextColor(20);doc.setFont("helvetica","bold");doc.setFontSize(20);doc.text(clean(`${A} vs ${B}`),M,y);
+  y+=18;doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...GREY);
+  doc.text(clean([m.tournament||"Friendly",fdate(m.date),m.venue,(S.teams[m.teamA]||{}).district,m.overs?m.overs+(m.overs===1?" over":" overs")+" a side":""].filter(Boolean).join("  |  ")),M,y);
+  if(m.toss){y+=14;doc.text(clean(`Toss: ${tn(m.toss.w)} won and chose to ${m.toss.d}`),M,y);}
+  y+=22;doc.setTextColor(...G);doc.setFont("helvetica","bold");doc.setFontSize(13);
+  const res=m.status==="done"?(m.result||"Match completed"):"Match in progress";doc.text(clean(res),M,y);
+  y+=16;doc.setTextColor(20);doc.setFontSize(11);
+  for(const t of [m.teamA,m.teamB]){const ins=(m.innings||[]).filter(i=>i.bat===t);
+    const line=ins.length?ins.map(i=>{const c=calc(i);return`${c.runs}/${c.wkts} (${ov(c.legal)} ov)`;}).join(" & "):(m.status==="done"?"Did not bat":"Yet to bat");
+    doc.setFont("helvetica","bold");doc.text(clean(tn(t)),M,y);doc.setFont("helvetica","normal");doc.text(clean(line),W-M,y,{align:"right"});y+=15;}
+  const pm=matchPOTM(m);
+  if(pm){y+=8;doc.setFillColor(253,246,227);doc.setDrawColor(...GOLD);doc.roundedRect(M,y,W-2*M,46,6,6,"FD");
+    doc.setTextColor(...GOLD);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text("PLAYER OF THE MATCH",M+14,y+16);
+    doc.setTextColor(20);doc.setFontSize(14);doc.text(clean(`${pn(pm.id)}  (${tn(pm.team)})`),M+14,y+34);
+    doc.setFont("helvetica","normal");doc.setFontSize(11);doc.text(clean(potmLine(pm)),W-M-14,y+34,{align:"right"});y+=46;}
+  y+=22;
+  (m.innings||[]).forEach((inn,k)=>{const c=calc(inn);
+    if(y>700){doc.addPage();y=50;}
+    doc.setTextColor(...G);doc.setFont("helvetica","bold");doc.setFontSize(12);
+    doc.text(clean(`${tn(inn.bat)} - ${["1st","2nd","3rd","4th"][k]||""} innings: ${c.runs}/${c.wkts} (${ov(c.legal)} ov)`),M,y);
+    const atC=id=>!inn.closed&&(id===inn.striker||id===inn.nonStriker);
+    doc.autoTable({startY:y+8,margin:{left:M,right:M},theme:"striped",headStyles:{fillColor:G},didParseCell:d=>{if(d.section==="head"&&d.column.index>=2)d.cell.styles.halign="right";},styles:{fontSize:9,cellPadding:4},
+      columnStyles:{2:{halign:"right"},3:{halign:"right"},4:{halign:"right"},5:{halign:"right"},6:{halign:"right"}},
+      head:[["Batter","Dismissal","R","B","4s","6s","SR"]],
+      body:c.order.map(id=>{const x=c.bat[id];return[clean(pn(id)+(atC(id)&&id===inn.striker?" *":"")),clean(x.out||(atC(id)?"batting":"not out")),x.r,x.b,x.f,x.s,x.b?(x.r*100/x.b).toFixed(1):"-"];})});
+    y=doc.lastAutoTable.finalY+14;doc.setTextColor(20);doc.setFont("helvetica","normal");doc.setFontSize(9);
+    const ex=c.ext;doc.text(clean(`Extras ${ex.wd+ex.nb+ex.b+ex.lb} (wd ${ex.wd}, nb ${ex.nb}, b ${ex.b}, lb ${ex.lb})`),M,y);
+    const yet=(m.xi[inn.bat]||[]).filter(id=>!c.order.includes(id));
+    if(yet.length){y+=12;doc.text(doc.splitTextToSize(clean((inn.closed?"Did not bat: ":"Yet to bat: ")+yet.map(pn).join(", ")),W-2*M),M,y);y+=12*(doc.splitTextToSize(clean(yet.map(pn).join(", ")),W-2*M).length-1);}
+    if(c.fow.length){y+=12;const fl=doc.splitTextToSize(clean("Fall of wickets: "+c.fow.map(f=>`${f.score}-${f.wk} (${pn(f.id)}, ${f.ov})`).join(", ")),W-2*M);doc.text(fl,M,y);y+=12*(fl.length-1);}
+    doc.autoTable({startY:y+10,margin:{left:M,right:M},theme:"striped",headStyles:{fillColor:[60,72,82]},didParseCell:d=>{if(d.section==="head"&&d.column.index>=1)d.cell.styles.halign="right";},styles:{fontSize:9,cellPadding:4},
+      columnStyles:{1:{halign:"right"},2:{halign:"right"},3:{halign:"right"},4:{halign:"right"},5:{halign:"right"},6:{halign:"right"},7:{halign:"right"}},
+      head:[["Bowler","O","M","R","W","Econ","Wd","Nb"]],
+      body:c.bowlOrder.filter(id=>c.bowl[id].balls||c.bowl[id].r).map(id=>{const x=c.bowl[id];return[clean(pn(id)),ov(x.balls),x.m,x.r,x.w,x.balls?(x.r*6/x.balls).toFixed(2):"-",x.wd,x.nb];})});
+    y=doc.lastAutoTable.finalY+28;});
+  const n=doc.internal.getNumberOfPages();
+  for(let i=1;i<=n;i++){doc.setPage(i);const H=doc.internal.pageSize.getHeight();doc.setDrawColor(220);doc.line(M,H-36,W-M,H-36);
+    doc.setFontSize(8);doc.setTextColor(...GREY);doc.setFont("helvetica","normal");
+    doc.text(clean(`Scored live on CricInsider.jk${m.scorer?" by "+m.scorer:""}  |  cricinsiderjk.github.io/jkcrickethub  |  Instagram @cricinsiderjk`),M,H-22);
+    doc.text(`Page ${i} of ${n}`,W-M,H-22,{align:"right"});}
+  const fname=`${A}-vs-${B}-${m.date||""}`.replace(/[^A-Za-z0-9-]+/g,"-").replace(/-+/g,"-")+".pdf";
+  doc.save(fname);return fname;
+}
+
 /* ----- quick start (local) ----- */
 function vQuick(app){
   if(!AUTH.enabled){location.hash="local";return;}
@@ -587,6 +659,8 @@ function vMatch(app,r){
     <div class="tline" style="margin-top:10px"><b style="font-size:16px">${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
     <div class="tline"><b style="font-size:16px">${esc(tn(m.teamB))}</b><span class="score">${teamScore(m,m.teamB)}</span></div>${status}
   </div>
+  ${m.local&&m.status==="done"&&matchPOTM(m)?(p=>`<div class="card" style="background:linear-gradient(135deg,#0e5c48,#0b3a2f);color:#fff;border:0"><div class="small" style="opacity:.8;font-weight:700;letter-spacing:.05em">⭐ PLAYER OF THE MATCH</div><div class="row sp" style="margin-top:4px"><div><span style="font-size:22px;font-weight:800" class="link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span> <span style="opacity:.8">${esc(tn(p.team))}</span></div><b>${esc(potmLine(p))}</b></div></div>`)(matchPOTM(m)):""}
+  ${m.local?`<div class="row" style="margin-bottom:12px"><button class="btn g" id="pdf">⬇ Download match report (PDF)</button></div>`:""}
   <div class="tabs"><button data-t="live" class="${tab==="live"?"on":""}">${live&&canScoreMatch(m)?"Score":live?"Live":"Summary"}</button><button data-t="card" class="${tab==="card"?"on":""}">Scorecard</button><button data-t="balls" class="${tab==="balls"?"on":""}">Overs</button></div>
   <div id="mbody"></div>
   ${canScoreMatch(m)?`<div class="row" style="margin-top:20px"><button class="btn d sm" id="delm">Delete match</button>${live?'<button class="btn g sm" id="endm">End match now</button>':""}</div>`:""}`;
@@ -598,6 +672,9 @@ function vMatch(app,r){
   else body.innerHTML=live&&canScoreMatch(m)?scorer(m):liveView(m);
   bindP(app);
   if(live&&canScoreMatch(m)&&tab==="live")bindScorer(m);
+  const pdfb=$("#pdf");if(pdfb)pdfb.onclick=async()=>{pdfb.disabled=true;pdfb.textContent="Preparing PDF…";
+    try{await matchPDF(S.matches[m.id]||m);toast("PDF downloaded");}catch(e){console.error(e);toast("Couldn't make the PDF. Check your internet and try again.");}
+    pdfb.disabled=false;pdfb.textContent="⬇ Download match report (PDF)";};
 
   if(canScoreMatch(m)){
     $("#delm").onclick=e=>{if(e.target.dataset.c!=="1"){e.target.dataset.c="1";e.target.textContent="Tap again to delete";return;}delete S.matches[m.id];removeDoc("matches/"+m.id);location.hash="local";};
