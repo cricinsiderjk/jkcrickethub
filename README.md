@@ -1,4 +1,4 @@
-# JK Cricket Hub
+# Cric Insider JK
 
 Ad-free scores, scorecards and player stats for Jammu & Kashmir cricket, by @cricinsiderjk.
 
