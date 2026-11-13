@@ -118,6 +118,15 @@ input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90de
 .lfil{margin:0 0 12px}.lfil select{width:auto;max-width:100%;padding:8px 34px 8px 12px;border-radius:999px;font-weight:600;font-size:14px}
 .lh{display:flex;align-items:center;gap:6px;margin:14px 0 8px;font-size:15px;text-transform:none}.ldot{width:9px;height:9px;border-radius:50%;background:#e53935;animation:pulse 1.4s infinite}
 @media (max-width:560px){.lgrid{gap:8px}.lgrid .mc{padding:12px 14px}.lgrid .mc .tline{margin-top:6px!important}}
+.trow,.frow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line,#eee);cursor:pointer}.trow:last-child,.frow:last-child{border-bottom:0}
+.trow .ti{font-size:26px;flex:0 0 34px;text-align:center}.tm{flex:1;min-width:0}.tn2{font-weight:800;font-size:16px}.trow .ts{margin-top:4px;line-height:1.7}.chev{color:var(--muted,#888);font-size:22px;flex:0 0 auto}
+.tlist{padding:6px 14px;border-left:4px solid var(--cc)}.flist{padding:4px 14px}
+.hsc2{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.hsc2::-webkit-scrollbar{display:none}.hsc2 button{flex:0 0 auto}
+.thead{display:flex;gap:12px;align-items:center;margin:0 0 10px;padding:14px 16px;border-radius:16px;background:var(--card,#fff);border:1px solid var(--line,#e5e5e5);border-left:5px solid var(--cc)}.thead .ti{font-size:34px}.thead h2{margin:0;font-size:21px;line-height:1.2}
+.fd{flex:0 0 52px;text-align:center;border-radius:12px;background:var(--bg,#f3f2ee);padding:6px 0;line-height:1.1}.fd b{display:block;font-size:20px}.fd span{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;color:#c0392b}.fd small{display:block;font-size:11px;opacity:.6}
+.fm{flex:1;min-width:0}.fv{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}.fl{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl{font-size:12px;font-weight:800;border-radius:6px;padding:2px 7px;background:#eee}.wl.W{background:#dcfce7;color:#166534}.wl.L{background:#fee2e2;color:#991b1b}
+.sqd summary{cursor:pointer;list-style:none}.sqd summary::-webkit-details-marker{display:none}.sqd summary::after{content:" ▾";opacity:.5}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -1421,6 +1430,13 @@ function jkRecord(ms){const r={p:0,w:0,l:0,t:0,d:0,nr:0,pts:0};for(const m of ms
   if(o.type==="win"){if(o.w===jk)r.w++;else r.l++;}else if(o.type==="tie")r.t++;else if(o.type==="draw")r.d++;else r.nr++;
   if(m.points)r.pts+=N(m.points[jk]||0);else if(o.type==="win"&&o.w===jk)r.pts+=4;else if(o.type!=="win")r.pts+=2;}return r;}
 const recTxt=r=>`${r.w}W ${r.l}L${r.d?" "+r.d+"D":""}${r.t?" "+r.t+"T":""}${r.nr?" "+r.nr+" NR":""}`;
+function fxRow(m){const jk=isJKid(m.teamA)?m.teamA:isJKid(m.teamB)?m.teamB:null;const opp=jk?(jk===m.teamA?m.teamB:m.teamA):null;
+  const d=new Date((m.start||((m.date||"")+"T00:00:00")));const ok=!isNaN(d);
+  const mo=ok?d.toLocaleDateString(undefined,{month:"short"}).toUpperCase():"",dd=ok?d.getDate():"",wd=ok?d.toLocaleDateString(undefined,{weekday:"short"}):"";
+  let badge="";if(m.status==="done"){const o=outcome(m);const r=!o||!jk?"":o.type==="win"?(o.w===jk?"W":"L"):o.type==="draw"?"D":o.type==="tie"?"T":"NR";badge=r?`<span class="wl ${r}">${r}</span>`:"";}
+  const home=jk&&jk===m.teamA;
+  const line=m.status==="done"?esc(m.result||"Result"):pending(m)?"Result coming soon":`${m.start?"🕒 "+esc(new Date(m.start).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}))+" · ":""}📍 ${esc(m.venue||"Venue TBA")}`;
+  return`<div class="frow" data-go="match-${esc(m.id)}"><div class="fd"><b>${dd}</b><span>${mo}</span><small>${wd}</small></div><div class="fm"><div class="fv">${jk?`<span class="muted" style="font-weight:500">vs</span> ${esc(tn(opp))}`:`${esc(tn(m.teamA))} vs ${esc(tn(m.teamB))}`}${badge}</div><div class="small muted fl">${line}</div>${m.matchNo?`<div class="small muted" style="opacity:.75">${esc(m.matchNo)}</div>`:""}</div><span class="chev">›</span></div>`;}
 function vTours(app){
   if(!S.sqData){app.innerHTML=`<div class="card empty">Loading…</div>`;loadSq(()=>{if(route().v==="tournaments")vTours(app);});return;}
   const ts=allTours();const ms=Object.values(S.matches).filter(m=>!m.local&&seasonOf(m.date)===CUR_SEASON);
@@ -1432,18 +1448,21 @@ function vTours(app){
     if(up.length&&!done.length)return{k:1,tag:"Coming up",cls:"",sub:`Starts ${fdate(up[0].date)} · ${up.length} fixture${up.length===1?"":"s"}`};
     if(up.length)return{k:1,tag:"In progress",cls:"",sub:`Next: ${fdate(up[0].date)}${rec}`};
     return{k:3,tag:"Finished",cls:"",sub:`${done.length} match${done.length===1?"":"es"}${rec}`};};
+  const row=(t,st)=>`<div class="trow" data-go="tour-${esc(slug(t.n))}"><span class="ti">${t.i}</span><div class="tm"><div class="tn2">${esc(t.n)}</div><div class="small ts"><span class="tag ${st.cls}" style="margin-right:6px">${esc(st.tag)}</span>${st.sub||"Fixtures not added yet"}</div><div class="small muted" style="margin-top:2px">${esc(t.f)}</div></div><span class="chev">›</span></div>`;
   const card=(t,st)=>`<div class="card mc" data-go="tour-${esc(slug(t.n))}" data-cat style="margin:0;--cc:${CAT_CLR[catOf(t.n)]||"var(--line)"}"><div class="row sp"><span style="font-size:24px">${t.i}</span><span class="tag ${st.cls}">${esc(st.tag)}</span></div>
      <div style="font-weight:800;font-size:16px;margin-top:8px">${esc(t.n)}</div><div class="small muted" style="margin-top:3px">${esc(t.f)}</div>
      <div class="small" style="margin-top:8px">${st.sub||"Fixtures not added yet"}</div></div>`;
   const others=[];
-  const body=TCATS.map(c=>{const list=c.t.map(n=>ts.find(x=>x.n===n)).filter(Boolean).map(t=>({t,st:status(t)}));
+  const tc=S.trCat||"";
+  const body=TCATS.filter(c=>!tc||c.k===tc).map(c=>{const list=c.t.map(n=>ts.find(x=>x.n===n)).filter(Boolean).map(t=>({t,st:status(t)}));
     list.filter(x=>!x.st).forEach(x=>others.push(x.t));const on=list.filter(x=>x.st).sort((a,b)=>a.st.k-b.st.k);
-    return on.length?`<h3 style="margin:18px 0 10px">${c.i} ${esc(c.k)}</h3><div class="grid">${on.map(x=>card(x.t,x.st)).join("")}</div>`:"";}).join("");
+    return on.length?`<div class="hh"><h3>${c.i} ${esc(c.k)}</h3></div><div class="card tlist" style="--cc:${CAT_CLR[c.k]||"var(--line)"}">${on.map(x=>row(x.t,x.st)).join("")}</div>`:"";}).join("");
   ts.filter(t=>!TCATS.some(c=>c.t.includes(t.n))&&t.f!=="Local").forEach(t=>{const st=status(t);if(!st)others.push(t);});
-  app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2>J&amp;K tournaments · ${CUR_SEASON}</h2><p class="small muted" style="margin-top:-6px">Every BCCI tournament J&amp;K teams are playing this season. Tap one for matches, J&amp;K's record and top performers.</p>
+  app.innerHTML=`<div class="lhead"><h2>🏆 Tournaments · ${CUR_SEASON}</h2><div class="small muted">Every BCCI tournament J&amp;K teams play this season. Tap one for fixtures, results and J&amp;K's record.</div></div>
+  <div class="tabs hsc2" id="trc"><button data-c="" class="${tc?"":"on"}">All</button>${TCATS.map(c=>`<button data-c="${esc(c.k)}" class="${tc===c.k?"on":""}">${esc(CAT_SH[c.k]||c.k)}</button>`).join("")}</div>
   ${body||'<div class="card empty">No tournaments yet this season.</div>'}
   ${others.length?`<h3 style="margin:22px 0 8px" class="muted">Not started for J&amp;K yet</h3><p class="small">${others.map(t=>`<a href="#tour-${esc(slug(t.n))}">${esc(t.n)}</a>`).join(" · ")}</p>`:""}`;
-  bindGo(app);
+  bindGo(app);app.querySelectorAll("#trc button").forEach(b=>b.onclick=()=>{S.trCat=b.dataset.c;vTours(app);});
 }
 function vTour(app,r){
   const t=allTours().find(x=>slug(x.n)===r.id);
@@ -1453,18 +1472,22 @@ function vTour(app,r){
   if(S.tSeason===undefined||(S.tSeason!==""&&!seasons.includes(S.tSeason)))S.tSeason=CUR_SEASON;
   const ms=all.filter(m=>!S.tSeason||seasonOf(m.date)===S.tSeason).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""));
   let tab=S.tTab||"matches";if(tab==="stats"&&catOf(t.n)&&catOf(t.n)!=="Senior Men")tab="matches";
-  app.innerHTML=`<div class="card"><div class="small muted"><a href="#tournaments">Tournaments</a> /</div>
-   <div class="row sp" style="margin-top:6px"><div class="row"><span style="font-size:30px">${t.i}</span><div><h2 style="margin:0;font-size:22px">${esc(t.n)}</h2><div class="small muted">${esc(t.f)} · ${esc(t.d)}</div><div style="font-weight:700;margin-top:4px">${S.tSeason?esc(S.tSeason)+" season":"All seasons"}</div></div></div>
-</div>
-   <div style="margin-top:12px;max-width:220px"><label>Season</label><select id="tse">${seasons.map(x=>`<option value="${x}" ${S.tSeason===x?"selected":""}>${x}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="" ${S.tSeason===""?"selected":""}>All seasons</option></select></div></div>
-  <div class="tabs"><button data-t="matches" class="${tab==="matches"?"on":""}">Matches</button><button data-t="table" class="${tab==="table"?"on":""}">${ms.some(m=>!isJKid(m.teamA)&&!isJKid(m.teamB))?"Points table":"J&amp;K record"}</button>${catOf(t.n)==="Senior Men"||!catOf(t.n)?`<button data-t="stats" class="${tab==="stats"?"on":""}">Top performers</button>`:""}</div>
+  const isTab=ms.some(m=>!isJKid(m.teamA)&&!isJKid(m.teamB));
+  const tabs=[["matches","📅 Matches"],["table",isTab?"📊 Table":"📊 J&amp;K record"]].concat(catOf(t.n)==="Senior Men"||!catOf(t.n)?[["stats","⭐ Top players"]]:[]);
+  app.innerHTML=`<div class="small muted" style="margin:2px 0 6px"><a href="#tournaments">‹ Tournaments</a></div>
+   <div class="thead" style="--cc:${CAT_CLR[catOf(t.n)]||"#0e5c48"}"><span class="ti">${t.i}</span><div style="min-width:0;flex:1"><h2>${esc(t.n)}</h2><div class="small muted">${esc(CAT_SH[catOf(t.n)]?CAT_SH[catOf(t.n)]+" · ":"")}${esc(t.f)}</div></div></div>
+   <div class="lfil"><select id="tse" aria-label="Season">${seasons.map(x=>`<option value="${x}" ${S.tSeason===x?"selected":""}>📆 ${x} season${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="" ${S.tSeason===""?"selected":""}>📆 All seasons</option></select></div>
+  <div class="tabs seg" style="grid-template-columns:repeat(${tabs.length},1fr)">${tabs.map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>
   <div id="tb"></div>`;
   const tb=$("#tb");
   if(!ms.length)tb.innerHTML=`<div class="card empty">No ${esc(t.n)} matches ${S.tSeason?"in the "+esc(S.tSeason)+" season ":""}yet.${S.tSeason===CUR_SEASON?" Fixtures and the J&amp;K squad appear here automatically once they're announced.":""}</div>`;
   else if(tab==="matches"){const live=ms.filter(m=>m.status==="live"),done=ms.filter(m=>m.status==="done");
     const up=ms.filter(m=>m.status==="upcoming").sort((a,b)=>(a.start||a.date||"").localeCompare(b.start||b.date||""));
     const sq=ms.find(m=>jkSq(m).length);
-    tb.innerHTML=(sq?`<div class="card"><h3>J&amp;K squad</h3><div class="small">${jkSq(sq).map(id=>`<span class="link" data-p="${esc(id)}">${esc(pn(id))}</span>`).join(" · ")}</div>${sq.note?`<div class="small muted" style="margin-top:6px">${esc(sq.note)}</div>`:""}</div>`:"")+(live.length?`<h3>Live now</h3><div class="grid" style="margin-bottom:16px">${live.map(matchCard).join("")}</div>`:"")+(up.length?`<h3>Upcoming fixtures</h3><div class="grid" style="margin-bottom:16px">${up.map(matchCard).join("")}</div>`:"")+(done.length?`<h3>Results</h3><div class="grid">${done.map(matchCard).join("")}</div>`:"");}
+    tb.innerHTML=(sq?`<details class="card sqd"><summary><b>👥 J&amp;K squad</b> <span class="small muted">· ${jkSq(sq).length} players</span></summary><div class="small" style="margin-top:8px;line-height:1.9">${jkSq(sq).map(id=>`<span class="link" data-p="${esc(id)}">${esc(pn(id))}</span>`).join(" · ")}</div>${sq.note?`<div class="small muted" style="margin-top:6px">${esc(sq.note)}</div>`:""}</details>`:"")
+      +(live.length?`<h3 class="lh"><span class="ldot"></span>Live now</h3><div class="grid" style="margin-bottom:16px">${live.map(matchCard).join("")}</div>`:"")
+      +(up.length?`<h3 class="lh">Upcoming · ${up.length}</h3><div class="card flist">${up.map(fxRow).join("")}</div>`:"")
+      +(done.length?`<h3 class="lh">Results · ${done.length}</h3><div class="card flist">${done.map(fxRow).join("")}</div>`:"");}
   else if(tab==="table"&&!ms.some(m=>!isJKid(m.teamA)&&!isJKid(m.teamB))){
     const done=ms.filter(m=>outcome(m));const r=jkRecord(done);const fc=done.some(m=>m.points||m.draw);
     tb.innerHTML=done.length?`<div class="card"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px">${[["Played",r.p],["Won",r.w],["Lost",r.l],...(fc?[["Drawn",r.d]]:[["Tied",r.t],["No result",r.nr]]),["Points",r.pts]].map(([k,v])=>`<div style="text-align:center;padding:10px;border-radius:12px;background:var(--bg)"><div style="font-size:24px;font-weight:800">${v}</div><div class="small muted">${k}</div></div>`).join("")}</div>
