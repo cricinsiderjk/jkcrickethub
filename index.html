@@ -107,7 +107,6 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
     <a href="#tournaments" data-v="tournaments">Tournaments</a>
     <a href="#stats" data-v="stats">Stats</a>
     <a href="#leaders" data-v="leaders">Leaderboards</a>
-    <a href="#teams" data-v="teams">Teams</a>
     <a href="#squads" data-v="squads">Squads</a>
     <span class="nsep"></span>
     <a href="#local" data-v="local" class="nloc">🏏 Local club cricket</a>
@@ -384,7 +383,7 @@ function render(){
   const app=$("#app");
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
   if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
-  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vTeams,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
+  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
   V(app,r);
 }
 
@@ -498,14 +497,14 @@ function teamForm(t,local){
   });
 }
 function vTeam(app,r){
-  const t=S.teams[r.id];if(!t){app.innerHTML=`<div class="card empty">Team not found. <a href="#teams">All teams</a></div>`;return;}
+  const t=S.teams[r.id];if(!t){app.innerHTML=`<div class="card empty">Team not found. <a href="#squads">Squads</a></div>`;return;}
   const ce=t.local?AUTH.enabled:S.canEdit;
   const jk=isJK(t);if(jk&&!S.sqData){app.innerHTML=`<div class="card empty">Loading…</div>`;loadSq(()=>{if(route().v==="team")render();});return;}
   const se=jk?(S.tmSeason||CUR_SEASON):"";
   const st=stats(jk&&se!=="all"?{local:false,s:se}:{local:!!t.local});
   const ps=jk?teamSeasonPlayers(t,se==="all"?"":se):(t.players||[]);
   const ms=jk?teamSeasonMs(t,se==="all"?"":se):Object.values(S.matches).filter(m=>m.teamA===t.id||m.teamB===t.id);
-  app.innerHTML=`<div class="card"><div class="row sp"><div><div class="small muted">${t.local?'<a href="#local">Local cricket</a> / Teams':'<a href="#teams">Teams</a>'} /</div><h2 style="margin:4px 0 2px;font-size:22px">${esc(t.name)}</h2><div class="small muted">${esc(t.district||"J&K")} · ${ps.length} players · ${ms.length} matches${jk?` · <select id="tss" style="width:auto;padding:4px 8px;font-size:13px">${teamSeasons().map(x=>`<option value="${esc(x)}" ${x===se?"selected":""}>${esc(x)}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="all" ${se==="all"?"selected":""}>All seasons</option></select>`:""}</div></div>
+  app.innerHTML=`<div class="card"><div class="row sp"><div><div class="small muted">${t.local?'<a href="#local">Local cricket</a> / Teams':'<a href="#squads">Squads</a>'} /</div><h2 style="margin:4px 0 2px;font-size:22px">${esc(t.name)}</h2><div class="small muted">${esc(t.district||"J&K")} · ${ps.length} players · ${ms.length} matches${jk?` · <select id="tss" style="width:auto;padding:4px 8px;font-size:13px">${teamSeasons().map(x=>`<option value="${esc(x)}" ${x===se?"selected":""}>${esc(x)}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="all" ${se==="all"?"selected":""}>All seasons</option></select>`:""}</div></div>
    ${ce?`<div class="row"><button class="btn g sm" id="et">Edit</button>${!t.local||AUTH.isAdmin?'<button class="btn d sm" id="dt">Delete team</button>':""}</div>`:""}</div></div>
   ${ce?`<div class="card"><h3>Add player</h3><form id="ap" class="row" style="align-items:end">
      <div style="flex:2 1 200px"><label>Name</label><input name="name" required maxlength="50" placeholder="Full name"></div>
