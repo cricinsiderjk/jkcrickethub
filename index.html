@@ -202,9 +202,21 @@ const TOURS=[
  {n:"Senior Women's T20 Trophy",f:"Women · 20 overs",o:20,i:"👩",d:"Women's national T20"},
  {n:"Women's U23 T20 Trophy",f:"Women U-23 · 20 overs",o:20,i:"👩",d:"Women's U-23 national T20"},
  {n:"Women's U19 T20 Trophy",f:"Women U-19 · 20 overs",o:20,i:"👩",d:"Women's U-19 national T20"},
+ {n:"Men's U23 State A Trophy",f:"Under-23 · 20 overs",o:20,i:"🎓",d:"U-23 national T20"},
+ {n:"Women's U23 One Day Trophy",f:"Women U-23 · 50 overs",o:50,i:"👩",d:"Women's U-23 national one-day"},
+ {n:"Women's U19 One Day Trophy",f:"Women U-19 · 50 overs",o:50,i:"👩",d:"Women's U-19 national one-day"},
+ {n:"Women's U15 One Day Trophy",f:"Women U-15 · 50 overs",o:50,i:"👩",d:"Women's U-15 national one-day"},
  {n:"JKCA League",f:"Local",o:20,i:"🏔️",d:"J&K Cricket Association local cricket"},
 ];
 const jkSq=m=>{const q=m&&m.squad;if(!q)return [];return q["t-jk"]||Object.values(q)[0]||[];};
+const TCATS=[
+ {k:"Senior Men",i:"🏆",t:["Ranji Trophy","Syed Mushtaq Ali Trophy","Vijay Hazare Trophy","Irani Cup","Duleep Trophy"]},
+ {k:"Under-23 Men",i:"🎓",t:["CK Nayudu Trophy","Men's U23 State A Trophy"]},
+ {k:"Under-19 Men",i:"🌱",t:["Cooch Behar Trophy","Vinoo Mankad Trophy"]},
+ {k:"Under-16 Men",i:"🧒",t:["Vijay Merchant Trophy"]},
+ {k:"Women",i:"👩",t:["Senior Women's T20 Trophy","Senior Women's One Day Trophy","Women's U23 T20 Trophy","Women's U23 One Day Trophy","Women's U19 T20 Trophy","Women's U19 One Day Trophy","Women's U15 One Day Trophy"]},
+];
+const tourIn=(name,f)=>!f||(f.startsWith("cat:")?((TCATS.find(c=>c.k===f.slice(4))||{t:[]}).t.includes(name)):name===f);
 const slug=n=>String(n||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"friendly";
 function allTours(){const names=new Set(TOURS.map(t=>t.n));for(const m of Object.values(S.matches))if(m.tournament&&!m.local)names.add(m.tournament);
   return [...names].map(n=>TOURS.find(t=>t.n===n)||{n,f:"Other",o:20,i:"🏏",d:"Custom tournament",custom:true});}
@@ -333,7 +345,7 @@ function startSecond(m){
 function endMatch(m,text){m=S.matches[m.id]||m;m.status="done";m.nr=!!text;const i=curInn(m);i.closed=true;m.result=text||computeResult(m);persist("matches/"+m.id,m);render();}
 
 /* ---------- stats ---------- */
-function matchFilter(f){return Object.values(S.matches).filter(m=>(f.local?m.local:!m.local)&&(!f.d||(S.teams[m.teamA]||{}).district===f.d||(S.teams[m.teamB]||{}).district===f.d)&&(!f.t||m.tournament===f.t)&&(!f.s||seasonOf(m.date)===f.s)&&(!f.mo||(m.date||"").slice(0,7)===f.mo));}
+function matchFilter(f){return Object.values(S.matches).filter(m=>(f.local?m.local:!m.local)&&(!f.d||(S.teams[m.teamA]||{}).district===f.d||(S.teams[m.teamB]||{}).district===f.d)&&tourIn(m.tournament,f.t)&&(!f.s||seasonOf(m.date)===f.s)&&(!f.mo||(m.date||"").slice(0,7)===f.mo));}
 function stats(f={}){
   const P={};const g=id=>P[id]||(P[id]={id,ct:0,m:0,inn:0,no:0,r:0,b:0,f:0,s:0,hs:0,hsNo:false,c50:0,c100:0,bb:0,br:0,w:0,bw:-1,bwr:0,log:[]});
   for(const m of matchFilter(f)){
@@ -431,13 +443,7 @@ function teamSeasonPlayers(t,se){const set=new Set();const own=new Set((t.player
 function teamSeasons(){const z=new Set([CUR_SEASON]);for(const q of (S.sqData||[]))z.add(q.season);for(const m of Object.values(S.matches))if(!m.local&&(isJK(S.teams[m.teamA])||isJK(S.teams[m.teamB]))&&m.date)z.add(seasonOf(m.date));return [...z].sort().reverse();}
 
 /* ----- JKCA squads by category ----- */
-const SQ_CATS=[
- {k:"Senior Men",i:"🏆",t:["Ranji Trophy","Syed Mushtaq Ali Trophy","Vijay Hazare Trophy"]},
- {k:"Under-23 Men",i:"🎓",t:["CK Nayudu Trophy","Men's U23 State A Trophy"]},
- {k:"Under-19 Men",i:"🌱",t:["Cooch Behar Trophy","Vinoo Mankad Trophy"]},
- {k:"Under-16 Men",i:"🧒",t:["Vijay Merchant Trophy"]},
- {k:"Women",i:"👩",t:["Senior Women's T20 Trophy","Senior Women's One Day Trophy","Women's U23 T20 Trophy","Women's U23 One Day Trophy","Women's U19 T20 Trophy","Women's U19 One Day Trophy"]},
-];
+const SQ_CATS=TCATS;
 function vSquads(app){
   if(!S.sqData){app.innerHTML=`<div class="card empty">Loading squads…</div>`;loadSq(()=>{if(route().v==="squads")vSquads(app);});return;}
   const all=S.sqData;const seasons=[...new Set([CUR_SEASON,...all.map(q=>q.season)])].sort().reverse();
@@ -453,7 +459,7 @@ function vSquads(app){
   const cats=SQ_CATS.filter(c=>!cat||c.k===cat);
   const body=cats.map(c=>{const rows=c.t.map(t=>{const qs=list.filter(q=>q.tournament===t).sort((a,b)=>(b.announced||"").localeCompare(a.announced||""));
       if(qs.length)return qs.map(card).join("");
-      return se===CUR_SEASON?`<div class="card" style="margin:0 0 12px;padding:12px 16px"><div class="row sp"><b>${esc(t)}</b><span class="small muted">Not announced yet</span></div></div>`:"";}).join("");
+      return se===CUR_SEASON&&!["Irani Cup","Duleep Trophy"].includes(t)?`<div class="card" style="margin:0 0 12px;padding:12px 16px"><div class="row sp"><b>${esc(t)}</b><span class="small muted">Not announced yet</span></div></div>`:"";}).join("");
     return rows?`<h3 style="margin:18px 0 10px">${c.i} ${esc(c.k)}</h3>${rows}`:"";}).join("");
   app.innerHTML=`<div class="sec dom">BCCI domestic</div><div class="row sp" style="margin-bottom:6px;flex-wrap:wrap;gap:8px"><h2 style="margin:0">J&amp;K squads</h2>
    <select id="sqs">${seasons.map(x=>`<option value="${esc(x)}" ${x===se?"selected":""}>${esc(x)}${x===CUR_SEASON?" (current)":""}</option>`).join("")}</select></div>
@@ -1021,7 +1027,7 @@ function filterBar(id){
   const tours=[...new Set(dm.map(m=>m.tournament).filter(Boolean))].sort();
   const seasons=[...new Set([CUR_SEASON,...dm.map(m=>seasonOf(m.date)).filter(Boolean)])].sort().reverse();
   return`<div class="row" style="margin-bottom:14px" id="${id}"><div style="flex:1 1 160px"><label>Season</label><select name="s">${seasons.map(x=>`<option value="${x}" ${S.lbF.s===x?"selected":""}>${x}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="" ${S.lbF.s===""?"selected":""}>All seasons</option></select></div>
-   <div style="flex:1 1 200px"><label>Tournament</label><select name="t"><option value="">All tournaments</option>${tours.map(t=>`<option ${S.lbF.t===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div></div>`;
+   <div style="flex:1 1 200px"><label>Tournament</label><select name="t"><option value="">All tournaments</option>${TCATS.map(c=>`<optgroup label="${esc(c.k)}"><option value="cat:${esc(c.k)}" ${S.lbF.t==="cat:"+c.k?"selected":""}>All ${esc(c.k)}</option>${c.t.map(t=>`<option value="${esc(t)}" ${S.lbF.t===t?"selected":""}>${esc(t)}</option>`).join("")}</optgroup>`).join("")}${tours.filter(t=>!TCATS.some(c=>c.t.includes(t))).map(t=>`<option ${S.lbF.t===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div></div>`;
 }
 function bindFilter(id){const el=$("#"+id);el.querySelectorAll("select").forEach(s=>s.onchange=()=>{S.lbF[s.name]=s.value;render();});}
 function vLeaders(app){
@@ -1041,7 +1047,7 @@ function vLeaders(app){
   <div class="row" style="margin-top:14px"><button class="btn g" id="cp">Copy top 10 run-scorers for Instagram</button></div>`;
   bindFilter("lf");bindP(app);
   $("#cp").onclick=async()=>{const top=st.filter(p=>p.r>0).sort((a,b)=>b.r-a.r).slice(0,10);
-    const txt=`🏏 J&K top run-scorers${S.lbF.t?" – "+S.lbF.t:""}${S.lbF.s?" "+S.lbF.s:""}\n\n`+top.map((p,i)=>`${i+1}. ${pn(p.id)} – ${p.r} runs (${p.inn} inns, HS ${p.hs}${p.hsNo?"*":""})`).join("\n")+"\n\n#JKCricket #cricinsiderjk";
+    const txt=`🏏 J&K top run-scorers${S.lbF.t?" – "+S.lbF.t.replace(/^cat:/,""):""}${S.lbF.s?" "+S.lbF.s:""}\n\n`+top.map((p,i)=>`${i+1}. ${pn(p.id)} – ${p.r} runs (${p.inn} inns, HS ${p.hs}${p.hsNo?"*":""})`).join("\n")+"\n\n#JKCricket #cricinsiderjk";
     try{await navigator.clipboard.writeText(txt);toast("Copied");}catch(e){toast("Couldn't copy");}};
 }
 function vPlayers(app){
