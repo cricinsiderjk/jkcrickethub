@@ -7,8 +7,8 @@ self.addEventListener("push", e => {
   e.waitUntil((async () => {
     let list = [];
     try { list = await (await fetch(W + "/latest", { cache: "no-store" })).json(); } catch (err) {}
-    const fresh = list.filter(x => Date.now() - x.ts < 20 * 60e3);
-    const items = fresh.length ? fresh.slice(0, 3) : [{ id: "jk", title: "CricInsider.jk", body: "New J&K cricket update. Tap to open.", url: "./" }];
+    const fresh = list.filter(x => Date.now() - x.ts < 3 * 60e3);
+    const items = fresh.length ? fresh.slice(0, 2) : [{ id: "jk", title: "CricInsider.jk", body: "New J&K cricket update. Tap to open.", url: "./" }];
     for (const x of items.reverse())
       await self.registration.showNotification(x.title, { body: x.body, tag: x.id, icon: "icon.svg", badge: "icon.svg", data: { url: x.url } });
   })());
