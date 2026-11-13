@@ -185,14 +185,13 @@ const fdate=d=>{if(!d)return"";const x=new Date(d+"T00:00:00");return isNaN(x)?e
 /* Indian domestic seasons run July-June, e.g. Oct 2026-Mar 2027 = "2026-27". */
 function seasonOf(d){if(!d)return"";const y=+String(d).slice(0,4),mo=+String(d).slice(5,7)||1;const a=mo>=7?y:y-1;return a+"-"+String((a+1)%100).padStart(2,"0");}
 const CUR_SEASON=seasonOf(new Date().toISOString().slice(0,10));
-const S={teams:{},matches:{},players:{},canEdit:false,db:null,loaded:{teams:false,matches:false},err:"",mTab:"live",lbF:{t:"",s:CUR_SEASON}};
+const S={teams:{},matches:{},players:{},canEdit:false,db:null,loaded:{teams:false,matches:false},err:"",mTab:"live",lbF:{t:"cat:Senior Men",s:CUR_SEASON}};
 const DIS=["Srinagar","Jammu","Anantnag","Baramulla","Budgam","Pulwama","Kupwara","Bandipora","Ganderbal","Kulgam","Shopian","Kathua","Udhampur","Rajouri","Poonch","Doda","Kishtwar","Ramban","Reasi","Samba"];
 const TOURS=[
  {n:"Ranji Trophy",f:"First-class",o:90,i:"🏆",d:"India's premier first-class championship"},
  {n:"Vijay Hazare Trophy",f:"One-day · 50 overs",o:50,i:"🏏",d:"National one-day championship"},
  {n:"Syed Mushtaq Ali Trophy",f:"T20 · 20 overs",o:20,i:"⚡",d:"National T20 championship"},
  {n:"Irani Cup",f:"First-class",o:90,i:"🥇",d:"Ranji champions vs Rest of India"},
- {n:"Duleep Trophy",f:"First-class",o:90,i:"🗺️",d:"Zonal first-class tournament"},
  {n:"CK Nayudu Trophy",f:"Under-23",o:90,i:"🎓",d:"U-23 multi-day championship"},
  {n:"Cooch Behar Trophy",f:"Under-19",o:90,i:"🌱",d:"U-19 multi-day championship"},
  {n:"Vinoo Mankad Trophy",f:"Under-19 · 50 overs",o:50,i:"🌱",d:"U-19 one-day championship"},
@@ -208,12 +207,14 @@ const TOURS=[
 ];
 const jkSq=m=>{const q=m&&m.squad;if(!q)return [];return q["t-jk"]||Object.values(q)[0]||[];};
 const TCATS=[
- {k:"Senior Men",i:"🏆",t:["Ranji Trophy","Syed Mushtaq Ali Trophy","Vijay Hazare Trophy","Irani Cup","Duleep Trophy"]},
+ {k:"Senior Men",i:"🏆",t:["Ranji Trophy","Syed Mushtaq Ali Trophy","Vijay Hazare Trophy","Irani Cup"]},
  {k:"Under-23 Men",i:"🎓",t:["CK Nayudu Trophy","Men's U23 State A Trophy"]},
  {k:"Under-19 Men",i:"🌱",t:["Cooch Behar Trophy","Vinoo Mankad Trophy"]},
  {k:"Under-16 Men",i:"🧒",t:["Vijay Merchant Trophy"]},
  {k:"Women",i:"👩",t:["Senior Women's T20 Trophy","Senior Women's One Day Trophy","Women's U23 T20 Trophy","Women's U23 One Day Trophy","Women's U19 T20 Trophy","Women's U19 One Day Trophy"]},
 ];
+const catOf=n=>(TCATS.find(c=>c.t.includes(n))||{}).k||"";
+const isJKid=id=>/^t-jkw?(-|$)/.test(id||"");
 const tourIn=(name,f)=>!f||(f.startsWith("cat:")?((TCATS.find(c=>c.k===f.slice(4))||{t:[]}).t.includes(name)):name===f);
 const slug=n=>String(n||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"friendly";
 function allTours(){const names=new Set(TOURS.map(t=>t.n));for(const m of Object.values(S.matches))if(m.tournament&&!m.local)names.add(m.tournament);
@@ -402,24 +403,27 @@ function matchCard(m){
 function bindGo(root){root.querySelectorAll("[data-go]").forEach(e=>e.onclick=()=>location.hash=e.dataset.go);}
 
 function vHome(app){
-  const all=Object.values(S.matches).filter(m=>!m.local).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""));
+  const hc=S.hCat||"";
+  const all=Object.values(S.matches).filter(m=>!m.local&&(!hc||catOf(m.tournament)===hc)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""));
   const live=all.filter(m=>m.status==="live"),done=all.filter(m=>m.status==="done");
   const up=all.filter(m=>m.status==="upcoming").sort((a,b)=>(a.start||a.date||"").localeCompare(b.start||b.date||""));
-  const st=Object.values(stats());
+  const lc=hc||"Senior Men";const st=Object.values(stats({t:"cat:"+lc,s:CUR_SEASON}));
   const topR=st.filter(p=>p.r>0).sort((a,b)=>b.r-a.r).slice(0,5),topW=st.filter(p=>p.w>0).sort((a,b)=>b.w-a.w||a.br-b.br).slice(0,5);
   const ready=Object.values(S.teams).filter(t=>(t.players||[]).length>=2).length>=2;
   app.innerHTML=`
   <div class="sec dom">J&amp;K in BCCI domestic cricket</div>
-  <p class="small muted" style="margin:0 0 14px">Ranji Trophy, Syed Mushtaq Ali, Vijay Hazare &amp; more. Updated after every match. For club cricket, see <a href="#local">Local club cricket</a>.</p>
+  <p class="small muted" style="margin:0 0 10px">Every J&amp;K team in BCCI cricket, from Under-16 to senior. Updated after every match. For club cricket, see <a href="#local">Local club cricket</a>.</p>
+  <div class="tabs" id="hcat" style="margin-bottom:14px"><button data-c="" class="${hc?"":"on"}">All</button>${TCATS.map(c=>`<button data-c="${esc(c.k)}" class="${hc===c.k?"on":""}">${esc(c.k.replace(" Men",""))}</button>`).join("")}</div>
   ${live.length?`<h2>Live now</h2><div class="grid" style="margin-bottom:18px">${live.map(matchCard).join("")}</div>`:""}
   ${up.length?`<h2>Upcoming</h2><div class="grid" style="margin-bottom:18px">${up.slice(0,4).map(matchCard).join("")}</div>${up.length>4?`<p class="small" style="margin:-8px 0 18px"><a href="#tour-${esc(slug(up[0].tournament))}">See all upcoming fixtures →</a></p>`:""}`:""}
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:18px">
-   <div class="card" style="margin:0"><h3>🏆 Most runs</h3>${topR.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.r}</span></div>`).join("")||'<div class="muted small">No runs yet</div>'}</div>
-   <div class="card" style="margin:0"><h3>🎯 Most wickets</h3>${topW.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.w}</span></div>`).join("")||'<div class="muted small">No wickets yet</div>'}</div>
+   <div class="card" style="margin:0"><h3>🏆 Most runs <span class="small muted">· ${esc(lc)} ${CUR_SEASON}</span></h3>${topR.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.r}</span></div>`).join("")||'<div class="muted small">No runs yet</div>'}</div>
+   <div class="card" style="margin:0"><h3>🎯 Most wickets <span class="small muted">· ${esc(lc)} ${CUR_SEASON}</span></h3>${topW.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.w}</span></div>`).join("")||'<div class="muted small">No wickets yet</div>'}</div>
   </div>
   <h2>${live.length?"Recent results":"Matches"}</h2>
   ${done.length?`<div class="grid">${done.map(matchCard).join("")}</div>`:`<div class="card empty">${all.length?"No completed matches yet.":S.canEdit?"No matches yet. Create teams, then start your first match.":"No matches yet. Check back soon."}</div>`}`;
   bindGo(app);bindP(app);
+  app.querySelectorAll("#hcat [data-c]").forEach(b=>b.onclick=()=>{S.hCat=b.dataset.c;vHome(app);});
 }
 
 function bindP(root){root.querySelectorAll("[data-p]").forEach(e=>e.onclick=ev=>{ev.stopPropagation();openPlayer(e.dataset.p);});}
@@ -959,14 +963,32 @@ function outcome(m){
   if(b.runs===a.runs)return{type:"tie"};
   return{type:"win",w:m.innings[0].bat,l:m.innings[1].bat};
 }
+function jkRecord(ms){const r={p:0,w:0,l:0,t:0,d:0,nr:0,pts:0};for(const m of ms){const o=outcome(m);if(!o)continue;const jk=isJKid(m.teamA)?m.teamA:m.teamB;r.p++;
+  if(o.type==="win"){if(o.w===jk)r.w++;else r.l++;}else if(o.type==="tie")r.t++;else if(o.type==="draw")r.d++;else r.nr++;
+  if(m.points)r.pts+=N(m.points[jk]||0);else if(o.type==="win"&&o.w===jk)r.pts+=4;else if(o.type!=="win")r.pts+=2;}return r;}
+const recTxt=r=>`${r.w}W ${r.l}L${r.d?" "+r.d+"D":""}${r.t?" "+r.t+"T":""}${r.nr?" "+r.nr+" NR":""}`;
 function vTours(app){
-  const ts=allTours();
-  const ms=Object.values(S.matches).filter(m=>!m.local&&seasonOf(m.date)===CUR_SEASON);
-  app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2>Domestic tournaments · ${CUR_SEASON}</h2><p class="small muted" style="margin-top:-6px">Tap a tournament to see its matches, points table and top performers.</p>
-  <div class="grid">${ts.map(t=>{const tm=ms.filter(m=>m.tournament===t.n);const live=tm.filter(m=>m.status==="live").length;
-    return`<div class="card mc" data-go="tour-${esc(slug(t.n))}" style="margin:0"><div class="row sp"><span style="font-size:24px">${t.i}</span>${live?`<span class="tag live">${live} live</span>`:`<span class="tag">${esc(t.f)}</span>`}</div>
-     <div style="font-weight:800;font-size:16px;margin-top:8px">${esc(t.n)}</div><div class="small muted" style="margin-top:3px">${esc(t.d)}</div>
-     <div class="small" style="margin-top:8px"><b>${tm.length}</b> match${tm.length===1?"":"es"} this season${live?"":` · ${esc(t.f)}`}</div></div>`}).join("")}</div>`;
+  if(!S.sqData){app.innerHTML=`<div class="card empty">Loading…</div>`;loadSq(()=>{if(route().v==="tournaments")vTours(app);});return;}
+  const ts=allTours();const ms=Object.values(S.matches).filter(m=>!m.local&&seasonOf(m.date)===CUR_SEASON);
+  const sqs=(S.sqData||[]).filter(q=>q.season===CUR_SEASON);
+  const status=t=>{const tm=ms.filter(m=>m.tournament===t.n);const live=tm.filter(m=>m.status==="live").length;const up=tm.filter(m=>m.status==="upcoming").sort((a,b)=>(a.date||"").localeCompare(b.date||""));const done=tm.filter(m=>m.status==="done");
+    if(!tm.length)return sqs.some(q=>q.tournament===t.n)?{k:2,tag:"Squad announced",cls:""}:null;
+    const rec=done.length?" · J&K "+recTxt(jkRecord(done)):"";
+    if(live)return{k:0,tag:`${live} live`,cls:"live",sub:`Live now${rec}`};
+    if(up.length&&!done.length)return{k:1,tag:"Coming up",cls:"",sub:`Starts ${fdate(up[0].date)} · ${up.length} fixture${up.length===1?"":"s"}`};
+    if(up.length)return{k:1,tag:"In progress",cls:"",sub:`Next: ${fdate(up[0].date)}${rec}`};
+    return{k:3,tag:"Finished",cls:"",sub:`${done.length} match${done.length===1?"":"es"}${rec}`};};
+  const card=(t,st)=>`<div class="card mc" data-go="tour-${esc(slug(t.n))}" style="margin:0"><div class="row sp"><span style="font-size:24px">${t.i}</span><span class="tag ${st.cls}">${esc(st.tag)}</span></div>
+     <div style="font-weight:800;font-size:16px;margin-top:8px">${esc(t.n)}</div><div class="small muted" style="margin-top:3px">${esc(t.f)}</div>
+     <div class="small" style="margin-top:8px">${st.sub||"Fixtures not added yet"}</div></div>`;
+  const others=[];
+  const body=TCATS.map(c=>{const list=c.t.map(n=>ts.find(x=>x.n===n)).filter(Boolean).map(t=>({t,st:status(t)}));
+    list.filter(x=>!x.st).forEach(x=>others.push(x.t));const on=list.filter(x=>x.st).sort((a,b)=>a.st.k-b.st.k);
+    return on.length?`<h3 style="margin:18px 0 10px">${c.i} ${esc(c.k)}</h3><div class="grid">${on.map(x=>card(x.t,x.st)).join("")}</div>`:"";}).join("");
+  ts.filter(t=>!TCATS.some(c=>c.t.includes(t.n))&&t.f!=="Local").forEach(t=>{const st=status(t);if(!st)others.push(t);});
+  app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2>J&amp;K tournaments · ${CUR_SEASON}</h2><p class="small muted" style="margin-top:-6px">Every BCCI tournament J&amp;K teams are playing this season. Tap one for matches, J&amp;K's record and top performers.</p>
+  ${body||'<div class="card empty">No tournaments yet this season.</div>'}
+  ${others.length?`<h3 style="margin:22px 0 8px" class="muted">Not started for J&amp;K yet</h3><p class="small">${others.map(t=>`<a href="#tour-${esc(slug(t.n))}">${esc(t.n)}</a>`).join(" · ")}</p>`:""}`;
   bindGo(app);
 }
 function vTour(app,r){
@@ -981,7 +1003,7 @@ function vTour(app,r){
    <div class="row sp" style="margin-top:6px"><div class="row"><span style="font-size:30px">${t.i}</span><div><h2 style="margin:0;font-size:22px">${esc(t.n)}</h2><div class="small muted">${esc(t.f)} · ${esc(t.d)}</div><div style="font-weight:700;margin-top:4px">${S.tSeason?esc(S.tSeason)+" season":"All seasons"}</div></div></div>
 </div>
    <div style="margin-top:12px;max-width:220px"><label>Season</label><select id="tse">${seasons.map(x=>`<option value="${x}" ${S.tSeason===x?"selected":""}>${x}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="" ${S.tSeason===""?"selected":""}>All seasons</option></select></div></div>
-  <div class="tabs"><button data-t="matches" class="${tab==="matches"?"on":""}">Matches</button><button data-t="table" class="${tab==="table"?"on":""}">Points table</button><button data-t="stats" class="${tab==="stats"?"on":""}">Top performers</button></div>
+  <div class="tabs"><button data-t="matches" class="${tab==="matches"?"on":""}">Matches</button><button data-t="table" class="${tab==="table"?"on":""}">${ms.some(m=>!isJKid(m.teamA)&&!isJKid(m.teamB))?"Points table":"J&amp;K record"}</button><button data-t="stats" class="${tab==="stats"?"on":""}">Top performers</button></div>
   <div id="tb"></div>`;
   const tb=$("#tb");
   if(!ms.length)tb.innerHTML=`<div class="card empty">No ${esc(t.n)} matches ${S.tSeason?"in the "+esc(S.tSeason)+" season ":""}yet.${S.tSeason===CUR_SEASON?" Fixtures and the J&amp;K squad appear here automatically once they're announced.":""}</div>`;
@@ -989,6 +1011,14 @@ function vTour(app,r){
     const up=ms.filter(m=>m.status==="upcoming").sort((a,b)=>(a.start||a.date||"").localeCompare(b.start||b.date||""));
     const sq=ms.find(m=>jkSq(m).length);
     tb.innerHTML=(sq?`<div class="card"><h3>J&amp;K squad</h3><div class="small">${jkSq(sq).map(id=>`<span class="link" data-p="${esc(id)}">${esc(pn(id))}</span>`).join(" · ")}</div>${sq.note?`<div class="small muted" style="margin-top:6px">${esc(sq.note)}</div>`:""}</div>`:"")+(live.length?`<h3>Live now</h3><div class="grid" style="margin-bottom:16px">${live.map(matchCard).join("")}</div>`:"")+(up.length?`<h3>Upcoming fixtures</h3><div class="grid" style="margin-bottom:16px">${up.map(matchCard).join("")}</div>`:"")+(done.length?`<h3>Results</h3><div class="grid">${done.map(matchCard).join("")}</div>`:"");}
+  else if(tab==="table"&&!ms.some(m=>!isJKid(m.teamA)&&!isJKid(m.teamB))){
+    const done=ms.filter(m=>outcome(m));const r=jkRecord(done);const fc=done.some(m=>m.points||m.draw);
+    tb.innerHTML=done.length?`<div class="card"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px">${[["Played",r.p],["Won",r.w],["Lost",r.l],...(fc?[["Drawn",r.d]]:[["Tied",r.t],["No result",r.nr]]),["Points",r.pts]].map(([k,v])=>`<div style="text-align:center;padding:10px;border-radius:12px;background:var(--bg)"><div style="font-size:24px;font-weight:800">${v}</div><div class="small muted">${k}</div></div>`).join("")}</div>
+      <div style="margin-top:14px">${done.sort((a,b)=>(a.date||"").localeCompare(b.date||"")).map(m=>{const o=outcome(m);const jk=isJKid(m.teamA)?m.teamA:m.teamB;const opp=jk===m.teamA?m.teamB:m.teamA;const res=o.type==="win"?(o.w===jk?"W":"L"):o.type==="draw"?"D":o.type==="tie"?"T":"NR";
+        return `<div class="pl" style="cursor:pointer" data-go="match-${esc(m.id)}"><span><b style="display:inline-block;width:28px;color:${res==="W"?"var(--ok,#16a34a)":res==="L"?"var(--bad,#dc2626)":"inherit"}">${res}</b>vs ${esc(tn(opp))} <span class="small muted">· ${fdate(m.date)}</span></span><span class="small muted">${esc(m.result||"")}</span></div>`;}).join("")}</div>
+      <p class="small muted" style="margin:10px 0 0">J&amp;K's own record. The full group table is on <a href="https://www.bcci.tv" target="_blank" rel="noopener">BCCI.tv</a>, as this site only tracks J&amp;K's matches.${fc?" Official BCCI points where published.":" Win 4 pts · Tie / No result 2 pts."}</p></div>`:`<div class="card empty">No completed J&amp;K matches yet.</div>`;
+    bindGo(tb);
+  }
   else if(tab==="table"){
     const T={};const g=id=>T[id]||(T[id]={id,p:0,w:0,l:0,t:0,d:0,nr:0,pts:0});let anyD=false;
     for(const m of ms){const o=outcome(m);if(!o)continue;g(m.teamA).p++;g(m.teamB).p++;
@@ -1068,7 +1098,7 @@ function openPlayer(id){
   const byM=new Map();for(const l of s.log){const k=l.m.id;if(!byM.has(k))byM.set(k,{m:l.m});const e=byM.get(k);e[l.type]=e[l.type]?[...e[l.type],l]:[l];}
   const rows=[...byM.values()].sort((a,b)=>(b.m.date||"").localeCompare(a.m.date||""));
   const tile=(k,v,n)=>`<div class="card" style="margin:0;background:var(--bg)"><div class="small muted">${k}</div><div style="font-size:24px;font-weight:800">${v}</div><div class="small muted">${n}</div></div>`;
-  openModal(`<div class="row sp"><div><h2 style="margin:0;font-size:22px">${esc(p?p.name:"Player")}</h2><div class="small muted">${esc(p?p.team:"")} · ${esc(p&&p.role||"")}</div></div><button class="btn g sm" id="cx">Close</button></div>
+  openModal(`<div class="row sp"><div><h2 style="margin:0;font-size:22px">${esc(p?p.name:"Player")}</h2><div class="small muted">${(()=>{const jt=Object.values(S.teams).filter(t=>isJKid(t.id)&&!t.local&&(t.players||[]).some(x=>x.id===id));return jt.length?jt.map(t=>`<span class="tag" style="text-transform:none;margin-right:4px">${esc(t.name)}</span>`).join(""):esc(p?p.team:"");})()} ${esc(p&&p.role&&p.role!=="Player"?p.role:"")}</div></div><button class="btn g sm" id="cx">Close</button></div>
    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-top:14px">
     ${tile("Runs",s.r,`${s.inn} inns · ${s.m} matches`)}${tile("Average",fmt(s.avg),`SR ${fmt(s.sr,1)}`)}${tile("Best",`${s.hs}${s.hsNo?"*":""}`,`${s.c100}×100 · ${s.c50}×50`)}
     ${tile("Wickets",s.w,`${ov(s.bb)} overs`)}${tile("Economy",fmt(s.eco),`Best ${s.bw>=0?s.bw+"/"+s.bwr:"–"}`)}${tile("Boundaries",`${s.f}/${s.s}`,"4s / 6s")}
