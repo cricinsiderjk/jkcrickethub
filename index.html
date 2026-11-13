@@ -147,7 +147,6 @@ h2{font-size:19px}
     <a href="#squads" data-v="squads">Squads</a>
     <span class="nsep"></span>
     <a href="#local" data-v="local" class="nloc">🏏 Local club cricket</a>
-    <a href="#community" data-v="community" class="nloc">👥 Community</a>
   </nav>
 </div></header>
 <main id="app"><div class="empty">Loading…</div></main>
@@ -527,7 +526,7 @@ function render(){
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
   if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
   const hk=location.hash;if(S._lh!==hk){S._lh=hk;app.classList.remove("fade");void app.offsetWidth;app.classList.add("fade");if(S._booted)window.scrollTo(0,0);S._booted=1;}
-  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:()=>{location.hash="local";},tournaments:vTours,tour:vTour,local:vLocal,community:vCommunity}[r.v];
+  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:()=>{location.hash="local";},tournaments:vTours,tour:vTour,local:vLocal,community:()=>{location.hash="local";}}[r.v];
   V(app,r);
 }
 
