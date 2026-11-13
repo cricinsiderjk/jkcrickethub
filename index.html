@@ -84,6 +84,7 @@ th.l,td.l{text-align:left;white-space:normal}
 .ck{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}
 .res{font-weight:700;color:var(--acc)}
 .note{background:var(--acc2);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 </style>
 </head>
@@ -495,8 +496,9 @@ function vQuick(app){
   const lts=Object.values(S.teams).filter(t=>t.local).sort((a,b)=>a.name.localeCompare(b.name));
   const side=i=>`<div class="card" style="margin:0"><h3>Team ${i+1}</h3>
      <label>Team name *</label><input name="t${i}" list="ltl" required maxlength="50" placeholder="${i?"e.g. Srinagar Lions":"e.g. Sopore Strikers"}">
-     <label style="margin-top:10px">Players (one name per line) *</label><textarea name="p${i}" rows="8" style="width:100%;font:14px Inter,sans-serif;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink)" placeholder="Player 1&#10;Player 2&#10;Player 3"></textarea>
-     <div class="small muted" id="h${i}" style="margin-top:4px"></div></div>`;
+     <div class="small muted" id="h${i}" style="margin-top:4px"></div>
+     <label style="margin-top:12px">Players *</label><div id="pl${i}"></div>
+     <button type="button" class="btn g sm" data-add="${i}" style="margin-top:8px">+ Add player</button> <span class="small muted" id="pc${i}"></span></div>`;
   app.innerHTML=`<div class="card"><div class="small muted"><a href="#local">Local cricket</a> /</div><h2 style="margin:6px 0 4px">Start scoring a match</h2>
    <p class="small muted" style="margin:0 0 14px">Type the two teams and their players. Saved teams fill in automatically next time.</p>
    <form id="qf"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${side(0)}${side(1)}</div>
@@ -514,25 +516,38 @@ function vQuick(app){
    <div class="row" style="margin-top:16px"><button class="btn" id="qgo" style="font-size:16px;padding:14px 22px">▶ Start scoring</button><a class="btn g" href="#local" style="text-decoration:none">Cancel</a></div>
    <div class="small" style="color:var(--bad);margin-top:8px" id="qerr"></div></form></div>`;
   const F=$("#qf"),f=F.elements;
+  const ROLES=["Batter","Bowler","All-rounder","Wicket-keeper"];
   const find=name=>lts.find(t=>t.name.trim().toLowerCase()===String(name||"").trim().toLowerCase());
-  [0,1].forEach(i=>{const fill=()=>{const t=find(f["t"+i].value);const h=$("#h"+i);
-      if(t){if(!f["p"+i].value.trim())f["p"+i].value=(t.players||[]).map(p=>p.name).join("\n");if(t.district&&!f.dist.value)f.dist.value=t.district;h.textContent="Saved team: players filled in. Add or delete names as needed.";}
+  const count=i=>{const n=[...$("#pl"+i).querySelectorAll("input")].filter(x=>x.value.trim()).length;$("#pc"+i).textContent=n?n+" player"+(n===1?"":"s"):"";};
+  const addRow=(i,name="",role="Batter",focus=false)=>{const box=$("#pl"+i);const row=document.createElement("div");row.className="prow";
+    row.innerHTML=`<input maxlength="50" placeholder="Player ${box.children.length+1} name" value="${esc(name)}"><select>${ROLES.map(r=>`<option ${r===role?"selected":""}>${r}</option>`).join("")}</select><button type="button" class="x" title="Remove">×</button>`;
+    const inp=row.querySelector("input");
+    inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(inp.value.trim())addRow(i,"","Batter",true);}});
+    inp.addEventListener("input",()=>count(i));
+    row.querySelector(".x").onclick=()=>{row.remove();if(!box.children.length)addRow(i);count(i);};
+    box.appendChild(row);if(focus)inp.focus();count(i);};
+  [0,1].forEach(i=>{for(let k=0;k<3;k++)addRow(i);
+    F.querySelector(`[data-add="${i}"]`).onclick=()=>addRow(i,"","Batter",true);
+    const fill=()=>{const t=find(f["t"+i].value);const h=$("#h"+i);const box=$("#pl"+i);
+      const empty=![...box.querySelectorAll("input")].some(x=>x.value.trim());
+      if(t){if(empty&&(t.players||[]).length){box.innerHTML="";(t.players||[]).forEach(p=>addRow(i,p.name,ROLES.includes(p.role)?p.role:"Batter"));}
+        if(t.district&&!f.dist.value)f.dist.value=t.district;h.textContent="Saved team: players filled in. Remove anyone not playing, or add more.";}
       else h.textContent=f["t"+i].value.trim()?"New team: it will be saved for next time.":"";
       f.tw.options[i].text=f["t"+i].value.trim()||("Team "+(i+1));};
     f["t"+i].addEventListener("change",fill);f["t"+i].addEventListener("input",()=>{f.tw.options[i].text=f["t"+i].value.trim()||("Team "+(i+1));});});
   F.onsubmit=async e=>{e.preventDefault();const err=$("#qerr");err.textContent="";
     const names=[0,1].map(i=>f["t"+i].value.trim().replace(/\s+/g," "));
-    const lists=[0,1].map(i=>[...new Map(f["p"+i].value.split(/\n|,/).map(x=>x.trim().replace(/\s+/g," ")).filter(Boolean).map(x=>[x.toLowerCase(),x.slice(0,50)])).values()]);
+    const lists=[0,1].map(i=>[...new Map([...$("#pl"+i).querySelectorAll(".prow")].map(r=>({name:r.querySelector("input").value.trim().replace(/\s+/g," ").slice(0,50),role:r.querySelector("select").value})).filter(p=>p.name).map(p=>[p.name.toLowerCase(),p])).values()]);
     if(!names[0]||!names[1]){err.textContent="Enter both team names.";return;}
     if(names[0].toLowerCase()===names[1].toLowerCase()){err.textContent="The two teams need different names.";return;}
-    if(lists[0].length<2||lists[1].length<2){err.textContent="Each team needs at least 2 players.";return;}
+    if(lists[0].length<2||lists[1].length<2){err.textContent="Each team needs at least 2 players. Type their names in the player boxes.";return;}
     const btn=$("#qgo");btn.disabled=true;btn.textContent="Starting…";
     try{await AUTH.ensure();}catch(x){err.textContent="Couldn't connect. Check your internet and try again.";btn.disabled=false;btn.textContent="▶ Start scoring";return;}
     const dist=f.dist.value.trim();const ids=[];const xi=[];
     for(const i of [0,1]){
       const ex=find(names[i]);const t=ex?{...S.teams[ex.id],players:[...(S.teams[ex.id].players||[])]}:{id:uid(),name:names[i],short:names[i].replace(/[^A-Za-z ]/g,"").split(" ").filter(Boolean).map(w=>w[0]).join("").slice(0,4).toUpperCase()||names[i].slice(0,3).toUpperCase(),district:dist,players:[],local:true,createdBy:AUTH.uid,created:new Date().toISOString()};
       if(!t.district&&dist)t.district=dist;
-      const pick=[];for(const nm of lists[i]){let p=t.players.find(x=>x.name.toLowerCase()===nm.toLowerCase());if(!p){p={id:uid(),name:nm,role:"Player"};t.players.push(p);}pick.push(p.id);}
+      const pick=[];for(const q of lists[i]){let p=t.players.find(x=>x.name.toLowerCase()===q.name.toLowerCase());if(!p){p={id:uid(),name:q.name,role:q.role};t.players.push(p);}else p.role=q.role;pick.push(p.id);}
       t.local=true;S.teams[t.id]=t;persist("teams/"+t.id,t);ids.push(t.id);xi.push(pick);}
     rebuildPlayers();
     const tw=ids[+f.tw.value],td=f.td.value;const bat=td==="bat"?tw:(tw===ids[0]?ids[1]:ids[0]);const bowl=bat===ids[0]?ids[1]:ids[0];
