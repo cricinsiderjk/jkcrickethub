@@ -1118,11 +1118,11 @@ function vLeaders(app){
 function vPlayers(app){
   const st=stats(S.lbF);
   const q=(S.pq||"").toLowerCase();
-  const ps=Object.values(S.players).filter(p=>!(S.teams[p.teamId]||{}).local).filter(p=>!q||p.name.toLowerCase().includes(q)||p.team.toLowerCase().includes(q))
+  const sen=(S.teams["t-jk"]||{players:[]});const ps=(sen.players||[]).map(p=>({...p,team:sen.name||"Jammu & Kashmir"})).filter(p=>!q||p.name.toLowerCase().includes(q))
     .map(p=>({...p,s:st[p.id]||{m:0,inn:0,r:0,hs:0,avg:null,sr:null,w:0,eco:null}})).sort((a,b)=>b.s.r-a.s.r||b.s.w-a.s.w||a.name.localeCompare(b.name));
   app.innerHTML=`<div class="sec dom">BCCI domestic</div><h2 style="margin-bottom:4px">Season stats</h2>
-   <p class="small muted" style="margin:0 0 14px">J&amp;K players in Ranji Trophy, Syed Mushtaq Ali, Vijay Hazare, Irani Cup &amp; other BCCI tournaments. Local club stats are under <a href="#local">Local club cricket → Player of the Month</a>.</p>${filterBar("pf")}
-   <input id="pq" placeholder="Search player or team…" value="${esc(S.pq||"")}" style="margin-bottom:12px">
+   <p class="small muted" style="margin:0 0 14px">J&amp;K senior men in Ranji Trophy, Syed Mushtaq Ali, Vijay Hazare &amp; Irani Cup. Local club stats are under <a href="#local">Local club cricket → Player of the Month</a>.</p>${filterBar("pf")}
+   <input id="pq" placeholder="Search player…" value="${esc(S.pq||"")}" style="margin-bottom:12px">
    <div class="card scroll"><table><thead><tr><th class="l">Player</th><th>M</th><th>Inns</th><th>Runs</th><th>HS</th><th>Avg</th><th>SR</th><th>Wkts</th><th>Econ</th></tr></thead><tbody>
    ${ps.map(p=>`<tr><td class="l"><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span><div class="small muted">${esc(p.team)} · ${esc(p.role||"")}</div></td><td>${p.s.m}</td><td>${p.s.inn}</td><td><b>${p.s.r}</b></td><td>${p.s.hs}${p.s.hsNo?"*":""}</td><td>${fmt(p.s.avg)}</td><td>${fmt(p.s.sr,1)}</td><td><b>${p.s.w}</b></td><td>${fmt(p.s.eco)}</td></tr>`).join("")||'<tr><td colspan="9" class="empty">No players yet</td></tr>'}
    </tbody></table></div>`;
