@@ -253,7 +253,18 @@ function allTours(){const names=new Set(TOURS.map(t=>t.n));for(const m of Object
 const WK=["bowled","caught","lbw","run out","stumped","hit wicket"];
 
 /* ---------- helpers ---------- */
-function rebuildPlayers(){S.players={};for(const t of Object.values(S.teams))for(const p of (t.players||[]))S.players[p.id]={...p,teamId:t.id,team:t.name};}
+function rebuildPlayers(){S.players={};const solo=t=>t.kind==="player";
+  for(const t of Object.values(S.teams))for(const p of (t.players||[])){const e=S.players[p.id];
+    if(!e||(e.solo&&!solo(t)))S.players[p.id]={...p,teamId:t.id,team:solo(t)?"":t.name,solo:solo(t),teams:e?e.teams:[]};
+    const x=S.players[p.id];if(!solo(t)&&!x.teams.includes(t.id))x.teams.push(t.id);if(solo(t)&&t.district&&!x.district)x.district=t.district;}}
+/* unique local player IDs, e.g. JK-7F3K2 (same for a player across every club and match) */
+function pcode(id){let h=2166136261;for(const c of String(id)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}return "JK-"+h.toString(36).toUpperCase().padStart(5,"0").slice(-5);}
+const isLocalP=p=>p&&(p.solo||(S.teams[p.teamId]||{}).local);
+function plOptions(){return Object.entries(S.players).filter(([,p])=>isLocalP(p)).sort((a,b)=>a[1].name.localeCompare(b[1].name))
+  .map(([id,p])=>`<option value="${esc(p.name+" · "+pcode(id))}">${esc((p.teams||[]).map(tn).join(", ")||p.district||"Player ID")}</option>`).join("");}
+function parsePl(v){v=String(v||"").trim().replace(/\s+/g," ");const m=v.match(/^(.*?)\s*·\s*(JK-[A-Z0-9]{5})$/i);
+  if(m){const code=m[2].toUpperCase();const id=Object.keys(S.players).find(k=>isLocalP(S.players[k])&&pcode(k)===code);if(id)return{name:S.players[id].name,id};return{name:m[1].trim().slice(0,50),id:null};}
+  return{name:v.slice(0,50),id:null};}
 const pn=id=>id&&S.players[id]?S.players[id].name:(id?"Unknown":"—");
 const tn=id=>S.teams[id]?S.teams[id].name:"Team";
 const tsn=id=>S.teams[id]?(S.teams[id].short||S.teams[id].name):"TBD";
@@ -405,8 +416,8 @@ function closeModal(){$("#modal").classList.remove("on");$("#sheet").innerHTML="
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
 
 /* ---------- routing ---------- */
-function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};if(h==="players")return{v:"stats"};if(h.startsWith("register-"))return{v:"register",id:h.slice(9)};return{v:["leaders","stats","teams","squads","newmatch","register","tournaments","local"].includes(h)?h:"home"};}
-window.addEventListener("hashchange",()=>{S.mTab="live";if(location.hash.startsWith("#tour-")&&location.hash!==S._lastTour){S.tSeason=undefined;S._lastTour=location.hash;}if(location.hash!=="#newmatch")S.prefMatch=null;if(!location.hash.startsWith("#tour-"))S.tTab="matches";render();window.scrollTo(0,0);});
+function route(){const h=location.hash.slice(1);if(h.startsWith("match-"))return{v:"match",id:h.slice(6)};if(h.startsWith("team-"))return{v:"team",id:h.slice(5)};if(h.startsWith("tour-"))return{v:"tour",id:h.slice(5)};if(h==="players")return{v:"stats"};if(h==="playerid")return{v:"playerid"};if(h.startsWith("register-"))return{v:"register",id:h.slice(9)};return{v:["leaders","stats","teams","squads","newmatch","register","tournaments","local"].includes(h)?h:"home"};}
+window.addEventListener("hashchange",()=>{S.mTab="live";try{if($("#modal").classList.contains("on"))closeModal();}catch(e){}if(location.hash.startsWith("#tour-")&&location.hash!==S._lastTour){S.tSeason=undefined;S._lastTour=location.hash;}if(location.hash!=="#newmatch")S.prefMatch=null;if(!location.hash.startsWith("#tour-"))S.tTab="matches";render();window.scrollTo(0,0);});
 
 /* ---------- views ---------- */
 
@@ -447,12 +458,12 @@ setTimeout(()=>PUSH.init(),0);
 setInterval(()=>{try{if(!document.hidden&&Object.values(S.matches).some(m=>m.start&&!m.local&&m.status!=="done"&&Math.abs(Date.now()-Date.parse(m.start))<5*864e5)&&!document.querySelector(".modal.on")&&!document.activeElement.matches("input,select,textarea"))render();}catch(e){}},60000);
 function render(){
   const r=route();
-  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(r.v==="newmatch"||r.v==="register"?"local":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"home"):r.v==="team"?(S.teams[r.id]&&S.teams[r.id].local?"local":"teams"):r.v==="tour"?"tournaments":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"home"):r.v)));
+  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(r.v==="newmatch"||r.v==="register"||r.v==="playerid"?"local":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"home"):r.v==="team"?(S.teams[r.id]&&S.teams[r.id].local?"local":"teams"):r.v==="tour"?"tournaments":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"home"):r.v)));
   const app=$("#app");
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
   if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
   const hk=location.hash;if(S._lh!==hk){S._lh=hk;app.classList.remove("fade");void app.offsetWidth;app.classList.add("fade");if(S._booted)window.scrollTo(0,0);S._booted=1;}
-  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
+  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:vPlayerId,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
   V(app,r);
 }
 
@@ -590,10 +601,10 @@ function vTeam(app,r){
    ${t.local&&AUTH.enabled?(t.registered?((AUTH.isAdmin||(AUTH.uid&&t.createdBy===AUTH.uid))?`<a class="btn g sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">Edit club details</a>`:""):`<a class="btn sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">🏟️ Register this club</a>`):""}
    ${ce?`<div class="row"><button class="btn g sm" id="et">Edit</button>${!t.local||AUTH.isAdmin?'<button class="btn d sm" id="dt">Delete team</button>':""}</div>`:""}</div></div>
   ${ce?`<div class="card"><h3>Add player</h3><form id="ap" class="row" style="align-items:end">
-     <div style="flex:2 1 200px"><label>Name</label><input name="name" required maxlength="50" placeholder="Full name"></div>
+     <div style="flex:2 1 200px"><label>Name or Player ID</label><input name="name" required maxlength="70" ${t.local?'list="lpls"':""} placeholder="Full name"></div>${t.local?`<datalist id="lpls">${plOptions()}</datalist>`:""}
      <div style="flex:1 1 140px"><label>Role</label><select name="role"><option>Batter</option><option>Bowler</option><option>All-rounder</option><option>Wicket-keeper</option></select></div>
      <button class="btn">Add</button></form></div>`:""}
-  <div class="card"><h3>${jk?(se==="all"?"All players":"Players · "+esc(se)):"Squad"}</h3>${ps.length?ps.map(p=>{const s=st[p.id];return`<div class="pl"><div><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span> <span class="small muted">· ${esc(p.role||"")}</span></div>
+  <div class="card"><h3>${jk?(se==="all"?"All players":"Players · "+esc(se)):"Squad"}</h3>${ps.length?ps.map(p=>{const s=st[p.id];return`<div class="pl"><div><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span> <span class="small muted">· ${esc(p.role||"")}${t.local?` · <span style="font-family:ui-monospace,monospace">${pcode(p.id)}</span>`:""}</span></div>
    <div class="row"><span class="small muted">${s?`${s.r} runs · ${s.w} wkts`:"—"}</span>${ce?`<button class="btn d sm" data-rm="${esc(p.id)}">Remove</button>`:""}</div></div>`}).join(""):'<div class="muted">'+(jk?"Squad not announced yet for this season.":"No players yet.")+'</div>'}</div>
   ${jk&&ms.length?`<h3>Matches${se!=="all"?" · "+esc(se):""}</h3><div class="grid">${ms.sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(matchCard).join("")}</div>`:""}`;
   bindP(app);if(jk){$("#tss").onchange=e=>{S.tmSeason=e.target.value;render();};bindGo(app);}
@@ -601,8 +612,8 @@ function vTeam(app,r){
     $("#et").onclick=()=>teamForm(t);
     if($("#dt"))$("#dt").onclick=e=>{if(ms.length){toast("Team has matches, can't delete");return;}if(e.target.dataset.c!=="1"){e.target.dataset.c="1";e.target.textContent="Tap again to delete";return;}
       delete S.teams[t.id];rebuildPlayers();removeDoc("teams/"+t.id);location.hash=t.local?"local":"teams";};
-    $("#ap").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=String(f.get("name")).trim().replace(/\s+/g," ");if(!name)return;
-      const t=S.teams[r.id];if(!t)return;t.players=[...(t.players||[]),{id:uid(),name,role:String(f.get("role"))}];rebuildPlayers();persist("teams/"+t.id,t);render();setTimeout(()=>{const i=document.querySelector("#ap input");i&&i.focus();},0);};
+    $("#ap").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const q=t.local?parsePl(f.get("name")):{name:String(f.get("name")).trim().replace(/\s+/g," "),id:null};const name=q.name;if(!name)return;
+      const t=S.teams[r.id];if(!t)return;if(q.id&&(t.players||[]).some(x=>x.id===q.id)){toast("Already in the squad");return;}t.players=[...(t.players||[]),{id:q.id||uid(),name,role:String(f.get("role"))}];rebuildPlayers();persist("teams/"+t.id,t);render();setTimeout(()=>{const i=document.querySelector("#ap input");i&&i.focus();},0);};
     app.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const used=Object.values(S.matches).some(m=>Object.values(m.xi||{}).some(x=>x.includes(b.dataset.rm)));
       if(used){toast("Player has match records, can't remove");return;}
       if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="Sure?";return;}
@@ -614,7 +625,7 @@ function vTeam(app,r){
 function vNewMatch(app){
   if(!AUTH.canScore){location.hash="local";return;}
   const PM=S.prefMatch&&S.matches[S.prefMatch]&&S.matches[S.prefMatch].status==="upcoming"?S.matches[S.prefMatch]:null;
-  const ts=Object.values(S.teams).filter(t=>t.local).sort((a,b)=>a.name.localeCompare(b.name));
+  const ts=Object.values(S.teams).filter(t=>t.local&&t.kind!=="player").sort((a,b)=>a.name.localeCompare(b.name));
   if(ts.length<2){app.innerHTML=`<div class="card empty">Add at least 2 local teams first. <a href="#local">Go to Local cricket → Teams</a></div>`;return;}
   const tours=["Friendly",...new Set(Object.values(S.matches).filter(m=>m.local&&m.tournament).map(m=>m.tournament))];const pre=PM?PM.tournament:(S.prefTour||"");S.prefTour="";const preT=TOURS.find(t=>t.n===pre);
   const opts=sel=>ts.map(t=>`<option value="${esc(t.id)}" ${t.id===sel?"selected":""}>${esc(t.name)}</option>`).join("");
@@ -730,6 +741,55 @@ async function matchPDF(m){
 
 /* ----- quick start (local) ----- */
 
+/* ----- Player ID: one profile per player across every club and match ----- */
+function vPlayerId(app){
+  if(!AUTH.enabled){location.hash="local";return;}
+  const clubs=Object.values(S.teams).filter(t=>t.local&&t.kind!=="player").sort((a,b)=>a.name.localeCompare(b.name));
+  const done=S.pidDone&&S.players[S.pidDone]?S.pidDone:null;
+  if(done){const p=S.players[done];
+    app.innerHTML=`<div class="sec loc">Local club cricket</div><div class="card" style="text-align:center;padding:28px 18px">
+     <div class="small muted" style="font-weight:700;letter-spacing:.06em">YOUR CRICINSIDER PLAYER ID</div>
+     <div style="font-size:40px;font-weight:800;font-family:ui-monospace,monospace;margin:10px 0">${pcode(done)}</div>
+     <div style="font-size:20px;font-weight:700">${esc(p.name)}</div><div class="small muted">${esc(p.role||"")}${(p.teams||[]).length?" · "+esc(p.teams.map(tn).join(", ")):""}${p.district?" · "+esc(p.district):""}</div>
+     <p style="margin:16px auto 0;max-width:460px">Give this ID to the scorer whenever you play. When they type your name, pick <b>${esc(p.name)} · ${pcode(done)}</b> from the list, and every run and wicket goes into this one profile, whichever club you play for.</p>
+     <div class="row" style="justify-content:center;margin-top:16px"><button class="btn" id="pidcp">Copy my ID</button><button class="btn g" data-p="${esc(done)}">View my profile</button><button class="btn g" id="pidnew">Get another ID</button></div></div>`;
+    $("#pidcp").onclick=async()=>{try{await navigator.clipboard.writeText(`${p.name} · ${pcode(done)}`);toast("Copied");}catch(e){toast(pcode(done));}};
+    $("#pidnew").onclick=()=>{S.pidDone=null;render();};bindP(app);return;}
+  app.innerHTML=`<div class="sec loc">Local club cricket</div><div class="card"><div class="small muted"><a href="#local">Local cricket</a> /</div>
+   <h2 style="margin:6px 0 4px">🆔 Get your Player ID</h2>
+   <p class="small muted" style="margin:0 0 14px">Free, no sign-up. You get a unique ID like <b>JK-7F3K2</b>. Scorers pick it when they type your name, so all your runs and wickets stay in one profile, even if you play for different clubs or two players share your name.</p>
+   <form id="pidf"><div class="fgrid">
+    <div><label>Your full name *</label><input name="name" required maxlength="50" placeholder="e.g. Shantun Sharma" autocomplete="off"></div>
+    <div><label>Playing role *</label><select name="role"><option>Batter</option><option>Bowler</option><option>All-rounder</option><option>Wicket-keeper</option></select></div>
+    <div><label>District *</label><select name="district" required><option value="">Choose…</option>${DIS.map(d=>`<option>${esc(d)}</option>`).join("")}</select></div>
+    <div><label>Your club</label><select name="club"><option value="">No club / not listed</option>${clubs.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}${t.registered?" ✓":""}</option>`).join("")}</select></div>
+   </div><div id="pidm" style="margin-top:12px"></div>
+   <div class="row" style="margin-top:14px"><button class="btn" id="pidgo" style="font-size:16px;padding:14px 22px">Create my Player ID</button><a class="btn g" href="#local" style="text-decoration:none">Cancel</a></div>
+   <div class="small" style="color:var(--bad);margin-top:8px" id="piderr"></div></form>
+   <p class="small muted" style="margin:14px 0 0">Your name, role, district and club are shown publicly on your profile.</p></div>`;
+  const F=$("#pidf"),f=F.elements;
+  const same=()=>{const n=f.name.value.trim().replace(/\s+/g," ").toLowerCase();if(n.length<3){$("#pidm").innerHTML="";return [];}
+    const hits=Object.entries(S.players).filter(([,p])=>isLocalP(p)&&p.name.toLowerCase()===n);
+    $("#pidm").innerHTML=hits.length?`<div class="note">${hits.length===1?"A player with this name already has":"Players with this name already have"} an ID: ${hits.map(([id,p])=>`<b>${esc(p.name)} · ${pcode(id)}</b> (${esc((p.teams||[]).map(tn).join(", ")||p.district||"no club")}) <a href="#" data-mine="${esc(id)}">That's me</a>`).join("; ")}. If none of these is you, carry on to get your own ID.</div>`:"";
+    $("#pidm").querySelectorAll("[data-mine]").forEach(a=>a.onclick=e=>{e.preventDefault();S.pidDone=a.dataset.mine;render();});return hits;};
+  f.name.addEventListener("input",same);
+  F.onsubmit=async e=>{e.preventDefault();const err=$("#piderr");err.textContent="";
+    const name=f.name.value.trim().replace(/\s+/g," ").slice(0,50);if(name.length<3){err.textContent="Enter your full name.";return;}
+    if(!f.district.value){err.textContent="Choose your district.";return;}
+    const btn=$("#pidgo");btn.disabled=true;btn.textContent="Creating…";
+    try{await AUTH.ensure();}catch(x){err.textContent="Couldn't connect. Check your internet and try again.";btn.disabled=false;btn.textContent="Create my Player ID";return;}
+    const pid=uid();const pl={id:pid,name,role:f.role.value};
+    try{
+      const solo={id:"pl-"+pid,name,kind:"player",district:f.district.value,players:[pl],local:true,createdBy:AUTH.uid,created:new Date().toISOString()};
+      S.teams[solo.id]=solo;await persist("teams/"+solo.id,solo);
+      const club=f.club.value&&S.teams[f.club.value];
+      if(club&&!(club.registered&&club.createdBy&&club.createdBy!==AUTH.uid&&!AUTH.isAdmin)){const t={...club,players:[...(club.players||[]),pl]};S.teams[t.id]=t;await persist("teams/"+t.id,t);}
+      else if(club){solo.club=club.id;solo.clubName=club.name;await persist("teams/"+solo.id,solo);}
+      rebuildPlayers();
+    }catch(x){err.textContent="Couldn't save. Please try again.";btn.disabled=false;btn.textContent="Create my Player ID";return;}
+    S.pidDone=pid;render();toast("🎉 Player ID created");};
+}
+
 /* ----- Register a local club ----- */
 function vRegister(app,r){
   if(!AUTH.enabled){location.hash="local";return;}
@@ -751,28 +811,29 @@ function vRegister(app,r){
    </div>
    <label style="margin-top:14px">Players <span class="muted small">(add at least 11)</span></label><div id="rpl"></div>
    <button type="button" class="btn g sm" id="radd" style="margin-top:8px">+ Add player</button> <span class="small muted" id="rpc"></span>
+   <datalist id="lpls">${plOptions()}</datalist><p class="small muted" style="margin:8px 0 0">Tip: if a player already has a CricInsider Player ID (e.g. JK-7F3K2), pick them from the suggestions so all their stats stay in one profile. <a href="#playerid">Get a Player ID</a></p>
    <p class="small muted" style="margin:14px 0 0">Everything above is shown publicly on the club page. Don't add phone numbers or addresses.</p>
    <div class="row" style="margin-top:14px"><button class="btn" id="rgo" style="font-size:16px;padding:14px 22px">${ex?"Save changes":"✓ Register club"}</button><a class="btn g" href="#local" style="text-decoration:none">Cancel</a></div>
    <div class="small" style="color:var(--bad);margin-top:8px" id="rerr"></div></form></div>`;
   const F=$("#rf"),f=F.elements,box=$("#rpl");
   const count=()=>{const n=[...box.querySelectorAll("input")].filter(x=>x.value.trim()).length;$("#rpc").textContent=n?n+" player"+(n===1?"":"s"):"";};
   const addRow=(name="",role="Batter",focus=false,id="")=>{const row=document.createElement("div");row.className="prow";row.dataset.id=id;
-    row.innerHTML=`<input maxlength="50" placeholder="Player ${box.children.length+1} name" value="${esc(name)}"><select>${ROLES.map(x=>`<option ${x===role?"selected":""}>${x}</option>`).join("")}</select><button type="button" class="x" title="Remove">✕</button>`;
+    row.innerHTML=`<input maxlength="70" list="lpls" placeholder="Player ${box.children.length+1} name or ID" value="${esc(name)}"><select>${ROLES.map(x=>`<option ${x===role?"selected":""}>${x}</option>`).join("")}</select><button type="button" class="x" title="Remove">✕</button>`;
     const inp=row.querySelector("input");
     inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(inp.value.trim())addRow("","Batter",true);}});
     inp.addEventListener("input",count);
     row.querySelector(".x").onclick=()=>{row.remove();if(!box.children.length)addRow();count();};
     box.appendChild(row);if(focus)inp.focus();count();};
-  if(ex&&(ex.players||[]).length)ex.players.forEach(p=>addRow(p.name,ROLES.includes(p.role)?p.role:"Batter",false,p.id));else for(let k=0;k<11;k++)addRow();
+  if(ex&&(ex.players||[]).length)ex.players.forEach(p=>addRow(p.name+" · "+pcode(p.id),ROLES.includes(p.role)?p.role:"Batter",false,p.id));else for(let k=0;k<11;k++)addRow();
   $("#radd").onclick=()=>addRow("","Batter",true);
   F.onsubmit=async e=>{e.preventDefault();const err=$("#rerr");err.textContent="";
     const name=f.name.value.trim().replace(/\s+/g," ");const district=f.district.value;
-    const rows=[...box.querySelectorAll(".prow")].map(r=>({id:r.dataset.id,name:r.querySelector("input").value.trim().replace(/\s+/g," ").slice(0,50),role:r.querySelector("select").value})).filter(p=>p.name);
-    const seen=new Set();const players=rows.filter(p=>{const k=p.name.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
+    const rows=[...box.querySelectorAll(".prow")].map(r=>{const q=parsePl(r.querySelector("input").value);return{id:q.id||r.dataset.id,name:q.name,role:r.querySelector("select").value};}).filter(p=>p.name);
+    const seen=new Set();const players=rows.filter(p=>{const k=p.id||p.name.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
     if(!name){err.textContent="Enter your club's name.";return;}
     if(!district){err.textContent="Choose your district.";return;}
     if(players.length<11){err.textContent=`Add at least 11 players (you have ${players.length}).`;return;}
-    const dup=Object.values(S.teams).find(t=>t.local&&t.id!==(ex&&ex.id)&&t.name.trim().toLowerCase()===name.toLowerCase());
+    const dup=Object.values(S.teams).find(t=>t.local&&t.kind!=="player"&&t.id!==(ex&&ex.id)&&t.name.trim().toLowerCase()===name.toLowerCase());
     if(dup&&dup.registered){err.innerHTML=`A club called “${esc(dup.name)}” is already registered. If it's yours, message <a href="https://instagram.com/cricinsiderjk" target="_blank" rel="noopener">@cricinsiderjk</a>.`;return;}
     const insta=f.insta.value.trim().replace(/^@+/,"").replace(/[^A-Za-z0-9._]/g,"").slice(0,30);
     const btn=$("#rgo");btn.disabled=true;btn.textContent="Saving…";
@@ -780,7 +841,7 @@ function vRegister(app,r){
     const base=ex||dup;  // an unregistered team with the same name (made while scoring) becomes the registered club
     const t=base?{...S.teams[base.id]}:{id:uid(),created:new Date().toISOString()};
     const old=(t.players||[]);
-    t.players=players.map(p=>{const o=old.find(x=>x.id===p.id)||old.find(x=>x.name.toLowerCase()===p.name.toLowerCase());return{id:o?o.id:uid(),name:p.name,role:p.role};});
+    t.players=players.map(p=>{const o=old.find(x=>x.id===p.id)||(!p.id&&old.find(x=>x.name.toLowerCase()===p.name.toLowerCase()));return{id:o?o.id:(p.id&&S.players[p.id]?p.id:uid()),name:p.name,role:p.role};});
     for(const o of old)if(!t.players.some(p=>p.id===o.id)&&Object.values(S.matches).some(m=>JSON.stringify(m).includes(o.id)))t.players.push(o); // keep players who already have stats
     Object.assign(t,{name,district,short:t.short||name.replace(/[^A-Za-z ]/g,"").split(" ").filter(Boolean).map(w=>w[0]).join("").slice(0,4).toUpperCase()||"CLUB",
       ground:f.ground.value.trim().slice(0,60),founded:f.founded.value?Math.min(yr,Math.max(1900,+f.founded.value)):"",captain:f.captain.value.trim().slice(0,50),insta,
@@ -790,7 +851,7 @@ function vRegister(app,r){
 }
 function vQuick(app){
   if(!AUTH.enabled){location.hash="local";return;}
-  const lts=Object.values(S.teams).filter(t=>t.local).sort((a,b)=>a.name.localeCompare(b.name));
+  const lts=Object.values(S.teams).filter(t=>t.local&&t.kind!=="player").sort((a,b)=>a.name.localeCompare(b.name));
   const side=i=>`<div class="card" style="margin:0"><h3>Team ${i+1}</h3>
      <label>Team name *</label><input name="t${i}" list="ltl" required maxlength="50" placeholder="${i?"e.g. Srinagar Lions":"e.g. Sopore Strikers"}">
      <div class="small muted" id="h${i}" style="margin-top:4px"></div>
@@ -807,6 +868,7 @@ function vQuick(app){
     <div><label>Ground</label><input name="venue" maxlength="60" placeholder="optional"></div>
     <div><label>Tournament</label><input name="tour" list="ltr" maxlength="60" placeholder="Friendly"></div>
    </div>
+   <datalist id="lpls">${plOptions()}</datalist>
    <datalist id="ltl">${lts.map(t=>`<option>${esc(t.name)}</option>`).join("")}</datalist>
    <datalist id="ldl">${DIS.map(d=>`<option>${esc(d)}</option>`).join("")}</datalist>
    <datalist id="ltr">${[...new Set(Object.values(S.matches).filter(m=>m.local&&m.tournament).map(m=>m.tournament))].map(t=>`<option>${esc(t)}</option>`).join("")}</datalist>
@@ -817,7 +879,7 @@ function vQuick(app){
   const find=name=>lts.find(t=>t.name.trim().toLowerCase()===String(name||"").trim().toLowerCase());
   const count=i=>{const n=[...$("#pl"+i).querySelectorAll("input")].filter(x=>x.value.trim()).length;$("#pc"+i).textContent=n?n+" player"+(n===1?"":"s"):"";};
   const addRow=(i,name="",role="Batter",focus=false)=>{const box=$("#pl"+i);const row=document.createElement("div");row.className="prow";
-    row.innerHTML=`<input maxlength="50" placeholder="Player ${box.children.length+1} name" value="${esc(name)}"><select>${ROLES.map(r=>`<option ${r===role?"selected":""}>${r}</option>`).join("")}</select><button type="button" class="x" title="Remove">×</button>`;
+    row.innerHTML=`<input maxlength="70" list="lpls" placeholder="Player ${box.children.length+1} name or ID" value="${esc(name)}"><select>${ROLES.map(r=>`<option ${r===role?"selected":""}>${r}</option>`).join("")}</select><button type="button" class="x" title="Remove">×</button>`;
     const inp=row.querySelector("input");
     inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(inp.value.trim())addRow(i,"","Batter",true);}});
     inp.addEventListener("input",()=>count(i));
@@ -827,16 +889,17 @@ function vQuick(app){
     F.querySelector(`[data-add="${i}"]`).onclick=()=>addRow(i,"","Batter",true);
     const fill=()=>{const t=find(f["t"+i].value);const h=$("#h"+i);const box=$("#pl"+i);
       const empty=![...box.querySelectorAll("input")].some(x=>x.value.trim());
-      if(t){if(empty&&(t.players||[]).length){box.innerHTML="";(t.players||[]).forEach(p=>addRow(i,p.name,ROLES.includes(p.role)?p.role:"Batter"));}
+      if(t){if(empty&&(t.players||[]).length){box.innerHTML="";(t.players||[]).forEach(p=>addRow(i,p.name+" · "+pcode(p.id),ROLES.includes(p.role)?p.role:"Batter"));}
         if(t.district&&!f.dist.value)f.dist.value=t.district;h.textContent="Saved team: players filled in. Remove anyone not playing, or add more.";}
       else h.textContent=f["t"+i].value.trim()?"New team: it will be saved for next time.":"";
       f.tw.options[i].text=f["t"+i].value.trim()||("Team "+(i+1));};
     f["t"+i].addEventListener("change",fill);f["t"+i].addEventListener("input",()=>{f.tw.options[i].text=f["t"+i].value.trim()||("Team "+(i+1));});});
   F.onsubmit=async e=>{e.preventDefault();const err=$("#qerr");err.textContent="";
     const names=[0,1].map(i=>f["t"+i].value.trim().replace(/\s+/g," "));
-    const lists=[0,1].map(i=>[...new Map([...$("#pl"+i).querySelectorAll(".prow")].map(r=>({name:r.querySelector("input").value.trim().replace(/\s+/g," ").slice(0,50),role:r.querySelector("select").value})).filter(p=>p.name).map(p=>[p.name.toLowerCase(),p])).values()]);
+    const lists=[0,1].map(i=>[...new Map([...$("#pl"+i).querySelectorAll(".prow")].map(r=>({...parsePl(r.querySelector("input").value),role:r.querySelector("select").value})).filter(p=>p.name).map(p=>[p.id||p.name.toLowerCase(),p])).values()]);
     if(!names[0]||!names[1]){err.textContent="Enter both team names.";return;}
     if(names[0].toLowerCase()===names[1].toLowerCase()){err.textContent="The two teams need different names.";return;}
+    {const both=lists[0].filter(p=>p.id&&lists[1].some(q=>q.id===p.id));if(both.length){err.textContent=`${both.map(p=>p.name).join(", ")} can't play for both teams. Remove them from one side.`;return;}}
     if(lists[0].length<2||lists[1].length<2){err.textContent="Each team needs at least 2 players. Type their names in the player boxes.";return;}
     const btn=$("#qgo");btn.disabled=true;btn.textContent="Starting…";
     try{await AUTH.ensure();}catch(x){err.textContent="Couldn't connect. Check your internet and try again.";btn.disabled=false;btn.textContent="▶ Start scoring";return;}
@@ -844,7 +907,7 @@ function vQuick(app){
     for(const i of [0,1]){
       const ex=find(names[i]);const t=ex?{...S.teams[ex.id],players:[...(S.teams[ex.id].players||[])]}:{id:uid(),name:names[i],short:names[i].replace(/[^A-Za-z ]/g,"").split(" ").filter(Boolean).map(w=>w[0]).join("").slice(0,4).toUpperCase()||names[i].slice(0,3).toUpperCase(),district:dist,players:[],local:true,createdBy:AUTH.uid,created:new Date().toISOString()};
       if(!t.district&&dist)t.district=dist;
-      const pick=[];for(const q of lists[i]){let p=t.players.find(x=>x.name.toLowerCase()===q.name.toLowerCase());if(!p){p={id:uid(),name:q.name,role:q.role};t.players.push(p);}else p.role=q.role;pick.push(p.id);}
+      const pick=[];for(const q of lists[i]){let p=q.id?t.players.find(x=>x.id===q.id):t.players.find(x=>x.name.toLowerCase()===q.name.toLowerCase());if(!p){p={id:q.id||uid(),name:q.name,role:q.role};t.players.push(p);}else p.role=q.role;if(!pick.includes(p.id))pick.push(p.id);}
       t.local=true;S.teams[t.id]=t;persist("teams/"+t.id,t);ids.push(t.id);xi.push(pick);}
     rebuildPlayers();
     const tw=ids[+f.tw.value],td=f.td.value;const bat=td==="bat"?tw:(tw===ids[0]?ids[1]:ids[0]);const bowl=bat===ids[0]?ids[1]:ids[0];
@@ -1041,14 +1104,14 @@ function adminLink(){
 function vLocal(app){
   const tab=S.lTab||"matches";
   const ms=Object.values(S.matches).filter(m=>m.local);
-  const ts=Object.values(S.teams).filter(t=>t.local).sort((a,b)=>a.name.localeCompare(b.name));
+  const ts=Object.values(S.teams).filter(t=>t.local&&t.kind!=="player").sort((a,b)=>a.name.localeCompare(b.name));
   const dists=[...new Set(ts.map(t=>t.district).filter(Boolean))].sort();
   const D=S.lDist||"";
   const inD=m=>!D||(S.teams[m.teamA]||{}).district===D||(S.teams[m.teamB]||{}).district===D;
   const mine=ms.filter(m=>m.status==="live"&&canScoreMatch(m));
   const tabsHtml=[["matches","Matches"],["potm","⭐ Player of the Month"],["teams","Teams"]].map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
   app.innerHTML=`<div class="sec loc">Local club cricket</div><div class="card"><h2 style="margin:0;font-size:22px">🏏 Local cricket in J&amp;K</h2><div class="small muted" style="margin-top:4px">Score your club match live. No sign-up needed.</div>
-    ${AUTH.enabled?`<div style="margin-top:14px"><button class="btn" id="lnm" style="font-size:16px;padding:14px 22px">▶ Start scoring a match</button> <a class="btn g" href="#register" style="text-decoration:none;padding:13px 18px">🏟️ Register your club</a></div>`:'<p class="small muted" style="margin:12px 0 0">Club scoring is being set up.</p>'}
+    ${AUTH.enabled?`<div style="margin-top:14px"><button class="btn" id="lnm" style="font-size:16px;padding:14px 22px">▶ Start scoring a match</button> <a class="btn g" href="#register" style="text-decoration:none;padding:13px 18px">🏟️ Register your club</a> <a class="btn g" href="#playerid" style="text-decoration:none;padding:13px 18px">🆔 Get your Player ID</a></div>`:'<p class="small muted" style="margin:12px 0 0">Club scoring is being set up.</p>'}
     ${mine.length?`<div class="note" style="margin-top:14px">You're scoring: ${mine.map(m=>`<a href="#match-${esc(m.id)}"><b>${esc(tn(m.teamA))} vs ${esc(tn(m.teamB))}</b></a>`).join(", ")}. Tap to continue.</div>`:""}
     ${dists.length?`<div style="margin-top:12px;max-width:220px"><label>District</label><select id="ldist"><option value="">All of J&amp;K</option>${dists.map(d=>`<option ${D===d?"selected":""}>${esc(d)}</option>`).join("")}</select></div>`:""}</div>
   <div class="tabs">${tabsHtml}</div><div id="lb"></div>${adminLink()}`;
@@ -1255,7 +1318,7 @@ function openPlayer(id){
   const byM=new Map();for(const l of s.log){const k=l.m.id;if(!byM.has(k))byM.set(k,{m:l.m});const e=byM.get(k);e[l.type]=e[l.type]?[...e[l.type],l]:[l];}
   const rows=[...byM.values()].sort((a,b)=>(b.m.date||"").localeCompare(a.m.date||""));
   const tile=(k,v,n)=>`<div class="card" style="margin:0;background:var(--bg)"><div class="small muted">${k}</div><div style="font-size:24px;font-weight:800">${v}</div><div class="small muted">${n}</div></div>`;
-  openModal(`<div class="row sp"><div><h2 style="margin:0;font-size:22px">${esc(p?p.name:"Player")}</h2><div class="small muted">${(()=>{const jt=Object.values(S.teams).filter(t=>isJKid(t.id)&&!t.local&&(t.players||[]).some(x=>x.id===id));return jt.length?jt.map(t=>`<span class="tag" style="text-transform:none;margin-right:4px">${esc(t.name)}</span>`).join(""):esc(p?p.team:"");})()} ${esc(p&&p.role&&p.role!=="Player"?p.role:"")}</div></div><button class="btn g sm" id="cx">Close</button></div>
+  openModal(`<div class="row sp"><div><h2 style="margin:0;font-size:22px">${esc(p?p.name:"Player")}</h2>${isLocalP(p)?`<div class="small" style="margin:4px 0 2px">🆔 Player ID <b style="font-family:ui-monospace,monospace">${pcode(id)}</b>${(p.teams||[]).length?` · plays for ${(p.teams||[]).map(x=>`<a href="#team-${esc(x)}" data-close>${esc(tn(x))}</a>`).join(", ")}`:""}</div>`:""}<div class="small muted">${(()=>{const jt=Object.values(S.teams).filter(t=>isJKid(t.id)&&!t.local&&(t.players||[]).some(x=>x.id===id));return jt.length?jt.map(t=>`<span class="tag" style="text-transform:none;margin-right:4px">${esc(t.name)}</span>`).join(""):esc(p?p.team:"");})()} ${esc(p&&p.role&&p.role!=="Player"?p.role:"")}</div></div><button class="btn g sm" id="cx">Close</button></div>
    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-top:14px">
     ${tile("Runs",s.r,`${s.inn} inns · ${s.m} matches`)}${tile("Average",fmt(s.avg),`SR ${fmt(s.sr,1)}`)}${tile("Best",`${s.hs}${s.hsNo?"*":""}`,`${s.c100}×100 · ${s.c50}×50`)}
     ${tile("Wickets",s.w,`${ov(s.bb)} overs`)}${tile("Economy",fmt(s.eco),`Best ${s.bw>=0?s.bw+"/"+s.bwr:"–"}`)}${tile("Boundaries",`${s.f}/${s.s}`,"4s / 6s")}
@@ -1271,7 +1334,7 @@ function openPlayer(id){
 function softRender(){
   const a=document.activeElement;
   if(route().v==="newmatch"&&S.loaded.teams&&S.loaded.matches&&$("#mf"))return;
-  if(route().v==="register"&&$("#rf"))return;
+  if((route().v==="register"&&$("#rf"))||(route().v==="playerid"&&$("#pidf")))return;
   if(a&&$("#app").contains(a)&&(a.tagName==="INPUT"||a.tagName==="SELECT")&&a.id!=="pq")return;
   if($("#modal").classList.contains("on")&&a&&a.tagName==="INPUT")return;
   render();
