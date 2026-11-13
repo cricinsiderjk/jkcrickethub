@@ -113,6 +113,11 @@ input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90de
 .star{display:flex;gap:14px;align-items:center}.star .av{flex:0 0 56px;height:56px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:#fff}
 .hsc{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}.hsc::-webkit-scrollbar{display:none}.hsc .c{scroll-snap-align:start;flex:0 0 auto;background:var(--card,#fff);border:1px solid var(--line,#e5e5e5);border-radius:14px;padding:10px 14px;min-width:150px;cursor:pointer}
 .hsc .c b{display:block;font-size:20px}.hsc .c span{font-size:12.5px;opacity:.7}
+.lhead{margin:4px 0 12px}.lhead h2{margin:0 0 2px;font-size:22px}
+.tabs.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}.tabs.seg button{padding:10px 6px;font-size:14px;white-space:nowrap;justify-content:center;text-align:center}
+.lfil{margin:0 0 12px}.lfil select{width:auto;max-width:100%;padding:8px 34px 8px 12px;border-radius:999px;font-weight:600;font-size:14px}
+.lh{display:flex;align-items:center;gap:6px;margin:14px 0 8px;font-size:15px;text-transform:none}.ldot{width:9px;height:9px;border-radius:50%;background:#e53935;animation:pulse 1.4s infinite}
+@media (max-width:560px){.lgrid{gap:8px}.lgrid .mc{padding:12px 14px}.lgrid .mc .tline{margin-top:6px!important}}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -1358,18 +1363,21 @@ function vLocal(app){
   const D=S.lDist||"";
   const inD=m=>!D||(S.teams[m.teamA]||{}).district===D||(S.teams[m.teamB]||{}).district===D;
   const mine=ms.filter(m=>m.status==="live"&&canScoreMatch(m));
-  const tabsHtml=[["matches","Matches"],["potm","⭐ Player of the Month"],["teams","Teams"]].map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
-  app.innerHTML=`<div class="sec loc">Local club cricket</div><div class="card"><h2 style="margin:0;font-size:22px">🏏 Local cricket in J&amp;K</h2><div class="small muted" style="margin-top:4px">Score your club match live. No sign-up needed.</div>
-    ${AUTH.enabled?`<div style="margin-top:14px"><button class="btn" id="lnm" style="font-size:16px;padding:14px 22px">▶ Start scoring a match</button> <a class="btn g" href="#register" style="text-decoration:none;padding:13px 18px">🏟️ Register your club</a></div>`:'<p class="small muted" style="margin:12px 0 0">Club scoring is being set up.</p>'}
-    ${mine.length?`<div class="note" style="margin-top:14px">You're scoring: ${mine.map(m=>`<a href="#match-${esc(m.id)}"><b>${esc(tn(m.teamA))} vs ${esc(tn(m.teamB))}</b></a>`).join(", ")}. Tap to continue.</div>`:""}
-    ${dists.length?`<div style="margin-top:12px;max-width:220px"><label>District</label><select id="ldist"><option value="">All of J&amp;K</option>${dists.map(d=>`<option ${D===d?"selected":""}>${esc(d)}</option>`).join("")}</select></div>`:""}</div>
-  <div class="tabs">${tabsHtml}</div><div id="lb"></div>${adminLink()}`;
+  const tabsHtml=[["matches","🏏 Matches"],["potm","⭐ Star of month"],["teams","🏟️ Clubs"]].map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
+  app.innerHTML=`<div class="lhead"><div><h2>🏏 Local club cricket</h2><div class="small muted">Live club scores from across J&amp;K. Score your own match, no sign-up.</div></div></div>
+    ${AUTH.enabled?`<div class="qa"><a class="pri" href="#newmatch" id="lnm"><span class="e">▶</span>Score a match<small>Live, ball by ball</small></a><a href="#register"><span class="e">🏟️</span>Register club<small>Free page, squad &amp; stats</small></a></div>`:'<p class="small muted">Club scoring is being set up.</p>'}
+    ${mine.length?`<div class="note" style="margin:0 0 12px">You're scoring: ${mine.map(m=>`<a href="#match-${esc(m.id)}"><b>${esc(tn(m.teamA))} vs ${esc(tn(m.teamB))}</b></a>`).join(", ")}. Tap to continue.</div>`:""}
+  <div class="tabs seg">${tabsHtml}</div>
+  <div class="lfil"><select id="ldist" aria-label="District"><option value="">📍 All of J&amp;K</option>${DIS.map(d=>`<option value="${esc(d)}" ${D===d?"selected":""}>📍 ${esc(d)}</option>`).join("")}</select></div>
+  <div id="lb"></div>${adminLink()}`;
   const lb=$("#lb");
   if(tab==="matches"){
     const sorted=ms.filter(inD).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""));
     const live=sorted.filter(m=>m.status==="live"),done=sorted.filter(m=>m.status!=="live");
-    lb.innerHTML=sorted.length?(live.length?`<h3>Live now</h3><div class="grid" style="margin-bottom:16px">${live.map(matchCard).join("")}</div>`:"")+(done.length?`<h3>Recent results</h3><div class="grid">${done.slice(0,30).map(matchCard).join("")}</div>`:"")
-      :`<div class="card empty">No local matches yet. Tap “Start scoring a match” to score the first one.</div>`;
+    const dayLbl=d=>{if(!d)return"Earlier";const t=new Date().toISOString().slice(0,10),y=new Date(Date.now()-864e5).toISOString().slice(0,10);return d===t?"Today":d===y?"Yesterday":fdate(d);};
+    const groups=[];for(const m of done.slice(0,40)){const k=dayLbl(m.date);const g=groups[groups.length-1];if(g&&g.k===k)g.ms.push(m);else groups.push({k,ms:[m]});}
+    lb.innerHTML=sorted.length?(live.length?`<h3 class="lh"><span class="ldot"></span>Live now · ${live.length}</h3><div class="grid lgrid" style="margin-bottom:16px">${live.map(matchCard).join("")}</div>`:"")+groups.map(g=>`<h3 class="lh">${esc(g.k)}</h3><div class="grid lgrid" style="margin-bottom:12px">${g.ms.map(matchCard).join("")}</div>`).join("")
+      :`<div class="card empty">No local matches${D?" in "+esc(D):""} yet.<br>Tap <b>▶ Score a match</b> to score the first one.</div>`;
   } else if(tab==="potm"){
     const months=[...new Set(ms.map(m=>(m.date||"").slice(0,7)).filter(Boolean))].sort().reverse();
     const now=new Date().toISOString().slice(0,7);if(!months.includes(now))months.unshift(now);
@@ -1378,16 +1386,16 @@ function vLocal(app){
     const top=[...st].sort((a,b)=>b.mvp-a.mvp)[0];
     const club=id=>{const p=S.players[id];return p?p.team:"";};
     const list=(title,arr,val,sub)=>`<div class="card" style="margin:0"><h3>${title}</h3>${arr.length?arr.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span> <span class="small muted">${esc(sub(p))}</span></span><span class="v">${val(p)}</span></div>`).join(""):'<div class="small muted">No data yet</div>'}</div>`;
-    lb.innerHTML=`<div class="row" style="margin-bottom:12px"><div style="max-width:220px;flex:1"><label>Month</label><select id="lmo">${months.map(x=>`<option value="${x}" ${x===mo?"selected":""}>${esc(monthName(x))}</option>`).join("")}</select></div></div>
+    lb.innerHTML=`<div class="lfil" style="margin-top:0"><select id="lmo" aria-label="Month">${months.map(x=>`<option value="${x}" ${x===mo?"selected":""}>${esc(monthName(x))}</option>`).join("")}</select></div>
      ${top&&top.mvp>0?`<div class="card" style="background:linear-gradient(135deg,#0e5c48,#0b3a2f);color:#fff;border:0"><div class="small" style="opacity:.8;font-weight:700;letter-spacing:.05em">⭐ PLAYER OF THE MONTH · ${esc(monthName(mo).toUpperCase())}${D?" · "+esc(D.toUpperCase()):""}</div>
        <div style="font-size:28px;font-weight:800;margin-top:6px" class="link" data-p="${esc(top.id)}">${esc(pn(top.id))}</div><div style="opacity:.85">${esc(club(top.id))}</div>
        <div class="row" style="margin-top:12px;gap:22px"><div><div style="font-size:24px;font-weight:800">${top.r}</div><div class="small" style="opacity:.8">runs</div></div><div><div style="font-size:24px;font-weight:800">${top.w}</div><div class="small" style="opacity:.8">wickets</div></div><div><div style="font-size:24px;font-weight:800">${top.ct}</div><div class="small" style="opacity:.8">catches</div></div><div><div style="font-size:24px;font-weight:800">${top.mvp}</div><div class="small" style="opacity:.8">MVP points</div></div></div></div>`
        :`<div class="card empty">No local matches in ${esc(monthName(mo))} yet.</div>`}
-     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+     ${st.some(p=>p.mvp>0)?`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
       ${list("🏆 Most runs",st.filter(p=>p.r>0).sort((a,b)=>b.r-a.r).slice(0,10),p=>p.r,p=>`${club(p.id)} · ${p.inn} inns`)}
       ${list("🎯 Most wickets",st.filter(p=>p.w>0).sort((a,b)=>b.w-a.w||a.br-b.br).slice(0,10),p=>p.w,p=>`${club(p.id)} · econ ${fmt(p.eco)}`)}
       ${list("⭐ MVP points",st.filter(p=>p.mvp>0).sort((a,b)=>b.mvp-a.mvp).slice(0,10),p=>p.mvp,p=>`${p.r}r · ${p.w}w · ${p.ct}ct`)}
-     </div><p class="small muted">MVP points = 1 per run + 20 per wicket + 10 per catch or stumping.</p>
+     </div><p class="small muted">MVP points = 1 per run + 20 per wicket + 10 per catch or stumping.</p>`:""}
      ${top&&top.mvp>0?'<div class="row"><button class="btn g" id="lcp">Copy Player of the Month post for Instagram</button></div>':""}`;
     $("#lmo").onchange=e=>{S.lMonth=e.target.value;render();};
     const cp=$("#lcp");if(cp)cp.onclick=async()=>{const r=[...st].sort((a,b)=>b.r-a.r)[0],w=[...st].sort((a,b)=>b.w-a.w)[0];
@@ -1396,7 +1404,7 @@ function vLocal(app){
   } else if(tab==="teams"){
     const tl=ts.filter(t=>!D||t.district===D).sort((a,b)=>(b.registered?1:0)-(a.registered?1:0)||a.name.localeCompare(b.name));
     const nreg=tl.filter(t=>t.registered).length;
-    lb.innerHTML=`<div class="card row sp" style="align-items:center"><div><b>${nreg} registered club${nreg===1?"":"s"}</b>${D?` in ${esc(D)}`:""}<div class="small muted">Register your club for free: its own page, squad and stats.</div></div><a class="btn" href="#register" style="text-decoration:none">🏟️ Register your club</a></div>
+    lb.innerHTML=`<div class="small muted" style="margin:0 2px 10px"><b style="color:inherit">${tl.length} club${tl.length===1?"":"s"}</b>${D?` in ${esc(D)}`:""} · ${nreg} registered ✓</div>
      ${tl.length?`<div class="grid">${tl.map(t=>`<div class="card mc" data-go="team-${esc(t.id)}" style="margin:0"><div class="row sp"><b style="font-size:16px">${esc(t.name)}</b>${t.registered?'<span class="tag" style="background:#e3f3ec;color:#0e5c48">✓ Registered</span>':`<span class="tag">${esc(t.short||"")}</span>`}</div><div class="small muted" style="margin-top:6px">${esc(t.district||"J&K")} · ${(t.players||[]).length} players${t.ground?" · "+esc(t.ground):""}</div></div>`).join("")}</div>`:`<div class="card empty">No clubs yet${D?" in "+esc(D):""}. Be the first to register!</div>`}`;
   }
   bindGo(app);bindP(app);
