@@ -510,7 +510,7 @@ function render(){
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
   if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
   const hk=location.hash;if(S._lh!==hk){S._lh=hk;app.classList.remove("fade");void app.offsetWidth;app.classList.add("fade");if(S._booted)window.scrollTo(0,0);S._booted=1;}
-  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:vPlayerId,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
+  const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:()=>{location.hash="local";},tournaments:vTours,tour:vTour,local:vLocal}[r.v];
   V(app,r);
 }
 
@@ -1160,7 +1160,7 @@ function vLocal(app){
   const mine=ms.filter(m=>m.status==="live"&&canScoreMatch(m));
   const tabsHtml=[["matches","Matches"],["potm","⭐ Player of the Month"],["teams","Teams"]].map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
   app.innerHTML=`<div class="sec loc">Local club cricket</div><div class="card"><h2 style="margin:0;font-size:22px">🏏 Local cricket in J&amp;K</h2><div class="small muted" style="margin-top:4px">Score your club match live. No sign-up needed.</div>
-    ${AUTH.enabled?`<div style="margin-top:14px"><button class="btn" id="lnm" style="font-size:16px;padding:14px 22px">▶ Start scoring a match</button> <a class="btn g" href="#register" style="text-decoration:none;padding:13px 18px">🏟️ Register your club</a> <a class="btn g" href="#playerid" style="text-decoration:none;padding:13px 18px">🆔 Get your Player ID</a></div>`:'<p class="small muted" style="margin:12px 0 0">Club scoring is being set up.</p>'}
+    ${AUTH.enabled?`<div style="margin-top:14px"><button class="btn" id="lnm" style="font-size:16px;padding:14px 22px">▶ Start scoring a match</button> <a class="btn g" href="#register" style="text-decoration:none;padding:13px 18px">🏟️ Register your club</a></div>`:'<p class="small muted" style="margin:12px 0 0">Club scoring is being set up.</p>'}
     ${mine.length?`<div class="note" style="margin-top:14px">You're scoring: ${mine.map(m=>`<a href="#match-${esc(m.id)}"><b>${esc(tn(m.teamA))} vs ${esc(tn(m.teamB))}</b></a>`).join(", ")}. Tap to continue.</div>`:""}
     ${dists.length?`<div style="margin-top:12px;max-width:220px"><label>District</label><select id="ldist"><option value="">All of J&amp;K</option>${dists.map(d=>`<option ${D===d?"selected":""}>${esc(d)}</option>`).join("")}</select></div>`:""}</div>
   <div class="tabs">${tabsHtml}</div><div id="lb"></div>${adminLink()}`;
