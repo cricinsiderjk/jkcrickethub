@@ -625,14 +625,8 @@ function vStart(app){
   const favLine=m=>m?(m.status==="done"?esc(m.result||"Result"):m.status==="live"||inPlay(m)?"🔴 Live now":"🕒 "+esc(ftime(m.start)||fdate(m.date))):"";
   app.innerHTML=`
   ${hero}
-  ${!fav?`<div class="card" id="hfol" style="margin:0 0 4px;display:flex;gap:12px;align-items:center;cursor:pointer;border:2px dashed #f2a900"><span style="font-size:28px">☆</span><div style="flex:1"><b style="font-size:16px">Follow your club</b><div class="small muted">Its live score, last result and next match will show first, every time you open CricInsider.</div></div><span class="btn sm">Pick</span></div>`:""}
   ${liveL.length?`<div class="hh"><h3><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e53935;margin-right:6px;animation:pulse 1.4s infinite"></span>Local matches live</h3><a href="#local">All local ›</a></div><div class="hsc">${liveL.slice(0,10).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</span><b>${(()=>{const i=curInn(m);if(!i)return"–";const c=calc(i);return c.runs+"/"+c.wkts;})()}</b><span>${esc((S.teams[m.teamA]||{}).district||"")}</span></div>`).join("")}</div>`:""}
-  ${fav?`<div class="hh"><h3>★ ${esc(fav.name)}</h3><span><a href="#team-${esc(fav.id)}">Club page ›</a> <a href="#home" id="hchg" class="small muted" style="margin-left:8px">Change</a></span></div>
-    <div class="card" style="margin:0">${favLive?`<div class="hrow" data-go="match-${esc(favLive.id)}" style="cursor:pointer"><b>🔴 Playing now vs ${esc(tn(favLive.teamA===fav.id?favLive.teamB:favLive.teamA))}</b><span>›</span></div>`:""}
-     ${favLast?`<div class="hrow" data-go="match-${esc(favLast.id)}" style="cursor:pointer;padding:6px 0"><span><span class="small muted">Last</span> · vs ${esc(tn(favLast.teamA===fav.id?favLast.teamB:favLast.teamA))}<div class="small res">${favLine(favLast)}</div></span><span class="muted">›</span></div>`:""}
-     ${favNext?`<div class="hrow" data-go="match-${esc(favNext.id)}" style="cursor:pointer;padding:6px 0"><span><span class="small muted">Next</span> · vs ${esc(tn(favNext.teamA===fav.id?favNext.teamB:favNext.teamA))}<div class="small">${favLine(favNext)}</div></span><span class="muted">›</span></div>`:""}
-     ${!favLive&&!favLast&&!favNext?`<div class="small muted">No matches yet. They'll show here as soon as one is scored.</div>`:""}</div>`:""}
-  <div class="qa" style="margin-top:16px"><a class="pri" href="#newmatch"><span class="e">▶</span>Score a match<small>Live, ball by ball. No sign-up.</small></a><a href="#register"><span class="e">🏟️</span>Register your club<small>Free club page, squad &amp; stats</small></a></div>
+  <div class="qa" style="margin-top:6px"><a class="pri" href="#newmatch"><span class="e">▶</span>Score a match<small>Live, ball by ball. No sign-up.</small></a><a href="#register"><span class="e">🏟️</span>Register your club<small>Free club page, squad &amp; stats</small></a></div>
   ${star?`<div class="hh"><h3>⭐ Player of the Month</h3><a href="#local" id="hpotm">Leaderboard ›</a></div>
    <div class="card" style="margin:0"><div class="star"><div class="av" style="background:hsl(${ppHue(star.id)},55%,42%)">${esc(ppInit(pn(star.id)))}</div><div style="min-width:0;flex:1"><div class="link" data-p="${esc(star.id)}" style="font-size:18px;font-weight:800">${esc(pn(star.id))}</div>
    <div class="small muted">${esc(((S.players[star.id]||{}).team)||"")} · ${esc(monthName(smo))}</div><div class="small" style="margin-top:4px"><b>${star.r}</b> runs · <b>${star.w}</b> wkts · <b>${star.ct}</b> catches</div></div></div></div>`:""}
@@ -647,7 +641,7 @@ function vStart(app){
   tickCd();bindGo(app);bindP(app);
   ["#halert","#halert2"].forEach(x=>{const b=$(x);if(b)b.onclick=ev=>{ev.stopPropagation();PUSH.open();};});
   const hp=$("#hpotm");if(hp)hp.onclick=()=>{S.lTab="potm";};
-  const hf=$("#hfol");if(hf)hf.onclick=followPicker;const hc=$("#hchg");if(hc)hc.onclick=e=>{e.preventDefault();followPicker();};
+  
 }
 function vHome(app){
   const hc=S.hCat||"";
@@ -757,7 +751,6 @@ function vTeam(app,r){
   const ps=jk?teamSeasonPlayers(t,se==="all"?"":se):(t.players||[]);
   const ms=jk?teamSeasonMs(t,se==="all"?"":se):Object.values(S.matches).filter(m=>m.teamA===t.id||m.teamB===t.id);
   app.innerHTML=`<div class="card"><div class="row sp"><div><div class="small muted">${t.local?'<a href="#local">Local cricket</a> / Teams':'<a href="#squads">Squads</a>'} /</div><h2 style="margin:4px 0 2px;font-size:22px">${esc(t.name)}${t.local&&t.registered?' <span class="tag" style="background:#e3f3ec;color:#0e5c48;vertical-align:4px">✓ Registered club</span>':""}</h2><div class="small muted">${esc(t.district||"J&K")} · ${ps.length} players · ${ms.length} matches${jk?` · <select id="tss" style="width:auto;padding:4px 8px;font-size:13px">${teamSeasons().map(x=>`<option value="${esc(x)}" ${x===se?"selected":""}>${esc(x)}${x===CUR_SEASON?" (current)":""}</option>`).join("")}<option value="all" ${se==="all"?"selected":""}>All seasons</option></select>`:""}</div></div>
-   <button class="btn ${favId()===t.id?"":"g"} sm" id="fol" style="margin-top:10px">${favId()===t.id?"★ Following":"☆ Follow"}</button>
    ${t.local&&(t.ground||t.founded||t.captain||t.insta)?`<div class="small" style="margin-top:8px;line-height:1.8">${[t.ground?`🏟️ ${esc(t.ground)}`:"",t.founded?`📅 Since ${esc(t.founded)}`:"",t.captain?`🧢 Captain: ${esc(t.captain)}`:"",t.insta?`<a href="https://instagram.com/${esc(t.insta)}" target="_blank" rel="noopener">📸 @${esc(t.insta)}</a>`:""].filter(Boolean).join(" &nbsp;·&nbsp; ")}</div>`:""}
    ${t.local&&AUTH.enabled?(t.registered?((AUTH.isAdmin||(AUTH.uid&&t.createdBy===AUTH.uid))?`<a class="btn g sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">Edit club details</a>`:""):`<a class="btn sm" href="#register-${esc(t.id)}" style="text-decoration:none;margin-top:10px;display:inline-block">🏟️ Register this club</a>`):""}
    ${ce?`<div class="row"><button class="btn g sm" id="et">Edit</button>${!t.local||AUTH.isAdmin?'<button class="btn d sm" id="dt">Delete team</button>':""}</div>`:""}</div></div>
@@ -768,7 +761,6 @@ function vTeam(app,r){
   <div class="card"><h3>${jk?(se==="all"?"All players":"Players · "+esc(se)):"Squad"}</h3>${ps.length?ps.map(p=>{const s=st[p.id];return`<div class="pl"><div><span class="link" data-p="${esc(p.id)}" style="font-weight:600">${esc(p.name)}</span> <span class="small muted">· ${esc(p.role||"")}${t.local?` · <span style="font-family:ui-monospace,monospace">${pcode(p.id)}</span>`:""}</span></div>
    <div class="row"><span class="small muted">${s?`${s.r} runs · ${s.w} wkts`:"—"}</span>${ce?`<button class="btn d sm" data-rm="${esc(p.id)}">Remove</button>`:""}</div></div>`}).join(""):'<div class="muted">'+(jk?"Squad not announced yet for this season.":"No players yet.")+'</div>'}</div>
   ${jk&&ms.length?`<h3>Matches${se!=="all"?" · "+esc(se):""}</h3><div class="grid">${ms.sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(matchCard).join("")}</div>`:""}`;
-  {const fb=$("#fol");if(fb)fb.onclick=()=>{const on=favId()!==t.id;setFav(on?t.id:"");toast(on?`★ Following ${t.name}. Its matches now show first on Home.`:"Unfollowed");render();};}
   bindP(app);if(jk){$("#tss").onchange=e=>{S.tmSeason=e.target.value;render();};bindGo(app);}
   if(ce){
     $("#et").onclick=()=>teamForm(t);
