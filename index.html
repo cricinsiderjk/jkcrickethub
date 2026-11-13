@@ -96,6 +96,26 @@ th.l,td.l{text-align:left;white-space:normal}
 .note{background:var(--acc2);border-radius:10px;padding:10px 12px;font-size:13.5px}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
+/* polish */
+header{position:sticky;top:0;z-index:15;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+nav,.tabs{scrollbar-width:none;-ms-overflow-style:none}nav::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none}
+.tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.tabs button{flex:0 0 auto;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.tabs button:hover:not(.on){border-color:var(--muted);color:var(--ink)}
+.card{border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.mc{transition:border-color .15s,transform .15s,box-shadow .15s}
+.mc:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(16,24,40,.08)}
+.mc[data-cat]{border-left:4px solid var(--cc,var(--line))}
+.cat{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px;color:#fff;background:var(--cc,#687280);margin-right:6px;vertical-align:1px}
+.mh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mh .tn{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tline b{font-size:15px}
+#app.fade{animation:fi .22s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2{font-size:19px}
+.more{display:block;width:100%;margin-top:12px}
+@media (max-width:560px){.ng{display:none}.score{font-size:15.5px}.brand small{display:none}.hwrap{padding-top:10px;gap:4px}main{padding:12px 12px 50px}.grid{gap:10px}.card{padding:14px}nav a{padding:10px 11px}}
+@media (prefers-reduced-motion:reduce){#app.fade{animation:none}.mc:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -213,6 +233,8 @@ const TCATS=[
  {k:"Under-16 Men",i:"🧒",t:["Vijay Merchant Trophy"]},
  {k:"Women",i:"👩",t:["Senior Women's T20 Trophy","Senior Women's One Day Trophy","Women's U23 T20 Trophy","Women's U23 One Day Trophy","Women's U19 T20 Trophy","Women's U19 One Day Trophy"]},
 ];
+const CAT_CLR={"Senior Men":"#0e5c48","Under-23 Men":"#2563eb","Under-19 Men":"#0891b2","Under-16 Men":"#7c3aed","Women":"#db2777"};
+const CAT_SH={"Senior Men":"Senior","Under-23 Men":"U-23","Under-19 Men":"U-19","Under-16 Men":"U-16","Women":"Women"};
 const catOf=n=>(TCATS.find(c=>c.t.includes(n))||{}).k||"";
 const isJKid=id=>/^t-jkw?(-|$)/.test(id||"");
 const tourIn=(name,f)=>!f||(f.startsWith("cat:")?((TCATS.find(c=>c.k===f.slice(4))||{t:[]}).t.includes(name)):name===f);
@@ -384,6 +406,7 @@ function render(){
   const app=$("#app");
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
   if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
+  const hk=location.hash;if(S._lh!==hk){S._lh=hk;app.classList.remove("fade");void app.offsetWidth;app.classList.add("fade");if(S._booted)window.scrollTo(0,0);S._booted=1;}
   const V={home:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,tournaments:vTours,tour:vTour,local:vLocal}[r.v];
   V(app,r);
 }
@@ -395,9 +418,11 @@ function matchCard(m){
   else if(live&&m.innings&&m.innings.length===2&&!curInn(m).closed){const c=calc(curInn(m));const need=target(m)-c.runs;const left=m.overs*6-c.legal;sub=`<div class="small" style="margin-top:6px">${esc(tsn(curInn(m).bat))} need <b>${need}</b> from ${left} ball${left===1?"":"s"}</div>`;}
   else if(m.result)sub=`<div class="small res" style="margin-top:6px">${esc(m.result)}</div>`;
   else if(live&&m.toss)sub=`<div class="small muted" style="margin-top:6px">${esc(tsn(m.toss.w))} won the toss, chose to ${esc(m.toss.d)}</div>`;
-  return`<div class="card mc" data-go="match-${esc(m.id)}" style="margin:0">
-   <div class="row sp"><span class="small muted"><span class="tag ${m.local?"loc":"dom"}" style="margin-right:6px">${m.local?"Local club":"Domestic"}</span>${esc(m.tournament||"Friendly")} · ${fdate(m.date)}</span>${live?'<span class="tag live">Live</span>':up?'<span class="tag">Upcoming</span>':'<span class="tag">Result</span>'}</div>
-   ${up?`<div class="tline" style="margin-top:8px"><b>${esc(tn(m.teamA))}</b><span class="muted small">vs</span><b>${esc(tn(m.teamB))}</b></div>`:`<div class="tline" style="margin-top:8px"><b>${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
+  const ck=m.local?"":catOf(m.tournament);const cc=m.local?"#b7860b":(CAT_CLR[ck]||"#687280");
+  const dt=(()=>{const x=new Date((m.date||"")+"T00:00:00");return isNaN(x)?"":x.toLocaleDateString(undefined,{day:"numeric",month:"short",year:x.getFullYear()===new Date().getFullYear()?undefined:"numeric"});})();
+  return`<div class="card mc" data-go="match-${esc(m.id)}" data-cat style="margin:0;--cc:${cc}">
+   <div class="mh"><span class="tn"><span class="cat">${m.local?"Local club":esc(CAT_SH[ck]||"Domestic")}</span>${esc(m.tournament||"Friendly")} · ${esc(dt)}</span>${live?'<span class="tag live">Live</span>':up?'<span class="tag">Upcoming</span>':'<span class="tag">Result</span>'}</div>
+   ${up?`<div class="tline" style="margin-top:10px"><b>${esc(tn(m.teamA))}</b><span class="muted small">vs</span><b style="text-align:right">${esc(tn(m.teamB))}</b></div>`:`<div class="tline" style="margin-top:10px"><b>${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
    <div class="tline"><b>${esc(tn(m.teamB))}</b><span class="score">${teamScore(m,m.teamB)}</span></div>`}${sub}</div>`;
 }
 function bindGo(root){root.querySelectorAll("[data-go]").forEach(e=>e.onclick=()=>location.hash=e.dataset.go);}
@@ -415,15 +440,16 @@ function vHome(app){
   <p class="small muted" style="margin:0 0 10px">Every J&amp;K team in BCCI cricket, from Under-16 to senior. Updated after every match. For club cricket, see <a href="#local">Local club cricket</a>.</p>
   <div class="tabs" id="hcat" style="margin-bottom:14px"><button data-c="" class="${hc?"":"on"}">All</button>${TCATS.map(c=>`<button data-c="${esc(c.k)}" class="${hc===c.k?"on":""}">${esc(c.k.replace(" Men",""))}</button>`).join("")}</div>
   ${live.length?`<h2>Live now</h2><div class="grid" style="margin-bottom:18px">${live.map(matchCard).join("")}</div>`:""}
-  ${up.length?`<h2>Upcoming</h2><div class="grid" style="margin-bottom:18px">${up.slice(0,4).map(matchCard).join("")}</div>${up.length>4?`<p class="small" style="margin:-8px 0 18px"><a href="#tour-${esc(slug(up[0].tournament))}">See all upcoming fixtures →</a></p>`:""}`:""}
+  ${up.length?`<h2>Upcoming</h2><div class="grid" style="margin-bottom:18px">${up.slice(0,S.hUp?999:(innerWidth<560?3:4)).map(matchCard).join("")}</div>${!S.hUp&&up.length>(innerWidth<560?3:4)?`<button class="btn g more" id="hup" style="margin:-6px 0 18px">Show all ${up.length} upcoming</button>`:""}`:""}
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:18px">
    <div class="card" style="margin:0"><h3>🏆 Most runs <span class="small muted">· ${esc(lc)} ${CUR_SEASON}</span></h3>${topR.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.r}</span></div>`).join("")||'<div class="muted small">No runs yet</div>'}</div>
    <div class="card" style="margin:0"><h3>🎯 Most wickets <span class="small muted">· ${esc(lc)} ${CUR_SEASON}</span></h3>${topW.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.w}</span></div>`).join("")||'<div class="muted small">No wickets yet</div>'}</div>
   </div>
   <h2>${live.length?"Recent results":"Matches"}</h2>
-  ${done.length?`<div class="grid">${done.map(matchCard).join("")}</div>`:`<div class="card empty">${all.length?"No completed matches yet.":S.canEdit?"No matches yet. Create teams, then start your first match.":"No matches yet. Check back soon."}</div>`}`;
+  ${done.length?`<div class="grid">${done.slice(0,S.hAll?999:6).map(matchCard).join("")}</div>${done.length>6&&!S.hAll?`<button class="btn g more" id="hmore">Show all ${done.length} results</button>`:""}`:`<div class="card empty">${all.length?"No completed matches yet.":S.canEdit?"No matches yet. Create teams, then start your first match.":"No matches yet. Check back soon."}</div>`}`;
   bindGo(app);bindP(app);
-  app.querySelectorAll("#hcat [data-c]").forEach(b=>b.onclick=()=>{S.hCat=b.dataset.c;vHome(app);});
+  app.querySelectorAll("#hcat [data-c]").forEach(b=>b.onclick=()=>{S.hCat=b.dataset.c;S.hAll=0;S.hUp=0;vHome(app);});
+  const hu=$("#hup");if(hu)hu.onclick=()=>{S.hUp=1;vHome(app);};const hm=$("#hmore");if(hm)hm.onclick=()=>{S.hAll=1;vHome(app);};
 }
 
 function bindP(root){root.querySelectorAll("[data-p]").forEach(e=>e.onclick=ev=>{ev.stopPropagation();openPlayer(e.dataset.p);});}
@@ -978,7 +1004,7 @@ function vTours(app){
     if(up.length&&!done.length)return{k:1,tag:"Coming up",cls:"",sub:`Starts ${fdate(up[0].date)} · ${up.length} fixture${up.length===1?"":"s"}`};
     if(up.length)return{k:1,tag:"In progress",cls:"",sub:`Next: ${fdate(up[0].date)}${rec}`};
     return{k:3,tag:"Finished",cls:"",sub:`${done.length} match${done.length===1?"":"es"}${rec}`};};
-  const card=(t,st)=>`<div class="card mc" data-go="tour-${esc(slug(t.n))}" style="margin:0"><div class="row sp"><span style="font-size:24px">${t.i}</span><span class="tag ${st.cls}">${esc(st.tag)}</span></div>
+  const card=(t,st)=>`<div class="card mc" data-go="tour-${esc(slug(t.n))}" data-cat style="margin:0;--cc:${CAT_CLR[catOf(t.n)]||"var(--line)"}"><div class="row sp"><span style="font-size:24px">${t.i}</span><span class="tag ${st.cls}">${esc(st.tag)}</span></div>
      <div style="font-weight:800;font-size:16px;margin-top:8px">${esc(t.n)}</div><div class="small muted" style="margin-top:3px">${esc(t.f)}</div>
      <div class="small" style="margin-top:8px">${st.sub||"Fixtures not added yet"}</div></div>`;
   const others=[];
