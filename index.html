@@ -1165,6 +1165,8 @@ function monthName(mo){if(!mo)return"";const [y,m]=mo.split("-");return new Date
 function adminLink(){
   if(!AUTH.enabled)return"";
   if(AUTH.isAdmin)return`<p class="small muted" style="margin-top:18px">Signed in as admin (${esc(AUTH.email)}) · you can edit or delete any local match. <a href="#local" id="sout">Sign out</a></p>`;
+  if(!AUTH.isAnon&&AUTH.email)return`<p class="small muted" style="margin-top:18px">Signed in as ${esc(AUTH.email)}, which isn't the admin account. <a href="#local" id="sout">Sign out</a> and sign in with the admin Google account.</p>`;
+  if(/Instagram|FBAN|FBAV|FB_IAB|Line\/|Snapchat|; wv\)/i.test(navigator.userAgent))return`<p class="small muted" style="margin-top:18px">Admin sign-in doesn't work inside the Instagram or Facebook app. Tap ⋯ and choose “Open in browser” (Chrome or Safari), then sign in.</p>`;
   return`<p class="small muted" style="margin-top:18px"><a href="#local" id="sin">Admin sign-in</a></p>`;
 }
 /* ----- Community: noticeboard (approved posts) + clubs & players directory ----- */
@@ -1183,7 +1185,7 @@ function postCard(p){const ig=igLink(p.contact);const mine=AUTH.uid&&p.createdBy
     ${AUTH.isAdmin&&p.status==="pending"?`<button class="btn sm" data-pa="${esc(p.id)}">✓ Approve</button><button class="btn g sm" data-pr="${esc(p.id)}">Reject</button>`:""}
     ${AUTH.isAdmin&&p.status==="rejected"?`<span class="small muted">Rejected</span>`:""}
     ${AUTH.isAdmin||mine?`<button class="btn g sm" data-pdel="${esc(p.id)}">Delete</button>`:""}</div></div>`;}
-function bindAdmin(app){const sin=app.querySelector("#sin");if(sin)sin.onclick=e=>{e.preventDefault();AUTH.signIn().catch(er=>toast("Sign-in failed"+(er&&er.code?": "+er.code:"")));};
+function bindAdmin(app){const sin=app.querySelector("#sin");if(sin)sin.onclick=e=>{e.preventDefault();AUTH.signIn().catch(er=>{const c=er&&er.code||"";toast(c==="auth/popup-closed-by-user"||c==="auth/cancelled-popup-request"?"Sign-in cancelled":c==="auth/unauthorized-domain"?"This website isn\u2019t allowed to sign in yet":c==="auth/network-request-failed"?"No internet. Try again":"Sign-in failed"+(c?": "+c:""));});};
   const so=app.querySelector("#sout");if(so)so.onclick=e=>{e.preventDefault();AUTH.signOut();};}
 function vCommunity(app){
   const tab=S.cTab||"board";const D=S.cDist||"";
@@ -1307,7 +1309,7 @@ function vLocal(app){
   bindGo(app);bindP(app);
   app.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{S.lTab=b.dataset.t;render();});
   const ld=$("#ldist");if(ld)ld.onchange=()=>{S.lDist=ld.value;render();};
-  const sin=$("#sin");if(sin)sin.onclick=e=>{e.preventDefault();AUTH.signIn().catch(er=>toast("Sign-in failed"+(er&&er.code?": "+er.code:"")));};
+  const sin=$("#sin");if(sin)sin.onclick=e=>{e.preventDefault();AUTH.signIn().catch(er=>{const c=er&&er.code||"";toast(c==="auth/popup-closed-by-user"||c==="auth/cancelled-popup-request"?"Sign-in cancelled":c==="auth/unauthorized-domain"?"This website isn\u2019t allowed to sign in yet":c==="auth/network-request-failed"?"No internet. Try again":"Sign-in failed"+(c?": "+c:""));});};
   const sout=$("#sout");if(sout)sout.onclick=e=>{e.preventDefault();AUTH.signOut();};
   const lnm=$("#lnm");if(lnm)lnm.onclick=()=>location.hash="newmatch";
 }
