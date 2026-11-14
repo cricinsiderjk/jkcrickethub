@@ -621,7 +621,7 @@ function vStart(app){
   const favLast=favMs.filter(m=>m.status==="done").sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""))[0];
   // hero
   const hm=liveD[0];let hero="";
-  const lvAll=[...liveD,...liveL];
+  const lvAll=[...liveD];
   const slide=m=>{const loc=!!m.local;const i=loc?curInn(m):null;const c=i?calc(i):null;
     const lab=loc?`Local · ${esc((S.teams[m.teamA]||{}).district||"J&K")}`:esc(m.tournament);
     const score=loc?(c?`<div class="lsc">${esc(tsn(i.bat))} <b>${c.runs}/${c.wkts}</b> <span>(${ov(c.legal)}${m.overs?"/"+m.overs:""} ov)</span></div>`:`<div class="lsc"><span>About to start</span></div>`)
@@ -649,7 +649,7 @@ function vStart(app){
   const favLine=m=>m?(m.status==="done"?esc(m.result||"Result"):m.status==="live"||inPlay(m)?"🔴 Live now":"🕒 "+esc(ftime(m.start)||fdate(m.date))):"";
   app.innerHTML=`
   ${carousel}${hero}
-  ${false&&liveL.length?`<div class="hh"><h3><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e53935;margin-right:6px;animation:pulse 1.4s infinite"></span>Local matches live</h3><a href="#local">All local ›</a></div><div class="hsc">${liveL.slice(0,10).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</span><b>${(()=>{const i=curInn(m);if(!i)return"–";const c=calc(i);return c.runs+"/"+c.wkts;})()}</b><span>${esc((S.teams[m.teamA]||{}).district||"")}</span></div>`).join("")}</div>`:""}
+  ${liveL.length?`<div class="hh"><h3><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e53935;margin-right:6px;animation:pulse 1.4s infinite"></span>Local matches live</h3><a href="#local">All local ›</a></div><div class="hsc">${liveL.slice(0,10).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</span><b>${(()=>{const i=curInn(m);if(!i)return"–";const c=calc(i);return c.runs+"/"+c.wkts;})()}</b><span>${esc((S.teams[m.teamA]||{}).district||"")}</span></div>`).join("")}</div>`:""}
   <div class="qa" style="margin-top:6px"><a class="pri" href="#newmatch"><span class="e">▶</span>Score a match<small>Live, ball by ball. No sign-up.</small></a><a href="#register"><span class="e">🏟️</span>Register your club<small>Free club page, squad &amp; stats</small></a></div>
   ${star?`<div class="hh"><h3>⭐ Player of the Month</h3><a href="#local" id="hpotm">Leaderboard ›</a></div>
    <div class="card" style="margin:0"><div class="star"><div class="av" style="background:hsl(${ppHue(star.id)},55%,42%)">${esc(ppInit(pn(star.id)))}</div><div style="min-width:0;flex:1"><div class="link" data-p="${esc(star.id)}" style="font-size:18px;font-weight:800">${esc(pn(star.id))}</div>
