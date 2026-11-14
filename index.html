@@ -557,7 +557,8 @@ function render(){
 const mDur=m=>(m.overs===0?4.4*24:m.overs>=50?9.5:4.5)*3600e3;
 const pending=m=>!m.local&&m.status==="upcoming"&&m.start&&Date.now()>=Date.parse(m.start)+mDur(m);
 function inPlay(m){if(m.local||m.status==="done"||!m.start)return false;const st=Date.parse(m.start);if(isNaN(st))return false;const dur=(m.overs===0?4.4*24:m.overs>=50?9.5:4.5)*3600e3;const n=Date.now();return n>=st&&n<st+dur;}
-const ciBtn=(m,big)=>m.cricinfo?`<a class="btn ${big?"":"g"} ci" href="${esc(m.cricinfo)}" target="_blank" rel="noopener">${big?"🔴 Live scorecard on ESPNcricinfo":inPlay(m)?"🔴 Live score on ESPNcricinfo":m.status==="done"?"Full scorecard on ESPNcricinfo ↗":"Follow live on ESPNcricinfo ↗"}</a>`:"";
+const bcciUrl=m=>!m.cricinfo&&/^https:\/\/www\.bcci\.tv\/matches\//.test(m.src||"")?m.src.replace(/\/More\/squads$/,""):"";
+const ciBtn=(m,big)=>!m.cricinfo&&bcciUrl(m)?`<a class="btn ${big?"":"g"} ci" href="${esc(bcciUrl(m))}" target="_blank" rel="noopener">${inPlay(m)?"🔴 Live score on BCCI.tv":m.status==="done"?"Scorecard on BCCI.tv ↗":"Follow live on BCCI.tv ↗"}</a>`:m.cricinfo?`<a class="btn ${big?"":"g"} ci" href="${esc(m.cricinfo)}" target="_blank" rel="noopener">${big?"🔴 Live scorecard on ESPNcricinfo":inPlay(m)?"🔴 Live score on ESPNcricinfo":m.status==="done"?"Full scorecard on ESPNcricinfo ↗":"Follow live on ESPNcricinfo ↗"}</a>`:"";
 function matchCard(m){
   const ip=inPlay(m);const live=m.status==="live"||ip,up=m.status==="upcoming"&&!ip;
   let sub="";
@@ -1089,7 +1090,7 @@ function vUpcoming(app,m){
    <div class="row sp" style="margin-top:14px;justify-content:center;gap:18px;text-align:center"><b style="font-size:20px">${esc(tn(m.teamA))}</b><span class="muted">vs</span><b style="font-size:20px">${esc(tn(m.teamB))}</b></div>
    <div style="text-align:center;margin-top:12px"><div style="font-weight:700">🕒 ${esc(ftime(m.start)||fdate(m.date))}</div><div class="small muted" style="margin-top:4px">${esc(m.venue||"Venue TBA")} · ${m.overs||20} overs a side · shown in your local time</div></div>
    ${inPlay(m)?`<div style="text-align:center;margin-top:14px"><span class="tag live">Live now</span></div>`:""}
-   ${m.cricinfo?`<div style="text-align:center;margin-top:14px">${ciBtn(m,inPlay(m))}</div>`:""}
+   ${m.cricinfo||bcciUrl(m)?`<div style="text-align:center;margin-top:14px">${ciBtn(m,inPlay(m))}</div>`:""}
    <p class="small muted" style="text-align:center;margin:14px 0 0">${m.cricinfo?"Ball-by-ball live score is on ESPNcricinfo. ":""}The full scorecard and player stats are added here after the match.</p></div>
   ${sq.length?`<div class="card"><h3>J&amp;K squad</h3>${sq.map(id=>`<div class="pl"><span class="link" data-p="${esc(id)}" style="font-weight:600">${esc(pn(id))}</span><span class="small muted">${esc((S.players[id]||{}).role||"")}</span></div>`).join("")}${m.note?`<p class="small muted" style="margin:8px 0 0">${esc(m.note)}</p>`:""}</div>`:""}
   ${m.src?`<p class="small muted">Fixture source: <a href="${esc(m.src)}" target="_blank" rel="noopener">${esc(m.srcName||"BCCI")}</a></p>`:""}`;
@@ -1110,7 +1111,7 @@ function vMatch(app,r){
   const tab=S.mTab;
   app.innerHTML=`<div class="card">
     <div class="row sp"><span class="small muted">${m.local?`<a href="#local">Local cricket</a> / ${esc(m.tournament||"Friendly")}`:`<a href="#matches">Matches</a> / <a href="#tour-${esc(slug(m.tournament))}">${esc(m.tournament)}</a>`} · ${fdate(m.date)}${m.venue?" · "+esc(m.venue):""}${m.overs?` · ${m.overs} overs`:" · Multi-day"}</span><span><span class="tag ${m.local?"loc":"dom"}">${m.local?"Local club":"Domestic"}</span> ${live?'<span class="tag live">Live</span>':'<span class="tag">Result</span>'}</span></div>
-    ${m.local&&m.scorer?`<div class="small muted" style="margin-top:6px">Scored by ${esc(m.scorer)}</div>`:""}${m.cricinfo&&!m.local?`<div style="margin-top:10px">${ciBtn(m)}</div>`:""}${m.src?`<div class="small muted" style="margin-top:6px">Imported scorecard · source: <a href="${esc(m.src)}" target="_blank" rel="noopener">${esc(m.srcName||"match report")}</a></div>`:""}
+    ${m.local&&m.scorer?`<div class="small muted" style="margin-top:6px">Scored by ${esc(m.scorer)}</div>`:""}${(m.cricinfo||bcciUrl(m))&&!m.local?`<div style="margin-top:10px">${ciBtn(m)}</div>`:""}${m.src?`<div class="small muted" style="margin-top:6px">Imported scorecard · source: <a href="${esc(m.src)}" target="_blank" rel="noopener">${esc(m.srcName||"match report")}</a></div>`:""}
     <div class="tline" style="margin-top:10px"><b style="font-size:16px">${esc(tn(m.teamA))}</b><span class="score">${teamScore(m,m.teamA)}</span></div>
     <div class="tline"><b style="font-size:16px">${esc(tn(m.teamB))}</b><span class="score">${teamScore(m,m.teamB)}</span></div>${status}
   </div>
