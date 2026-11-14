@@ -127,6 +127,10 @@ input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90de
 .fm{flex:1;min-width:0}.fv{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}.fl{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wl{font-size:12px;font-weight:800;border-radius:6px;padding:2px 7px;background:#eee}.wl.W{background:#dcfce7;color:#166534}.wl.L{background:#fee2e2;color:#991b1b}
 .sqd summary{cursor:pointer;list-style:none}.sqd summary::-webkit-details-marker{display:none}.sqd summary::after{content:" ▾";opacity:.5}
+.lcar{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:0;scrollbar-width:none;border-radius:18px;margin-bottom:6px;-webkit-overflow-scrolling:touch}.lcar::-webkit-scrollbar{display:none}
+.lcar .lsl{flex:0 0 100%;scroll-snap-align:center;margin:0;cursor:pointer;box-sizing:border-box}.lsc{font-size:17px;font-weight:700;margin-top:4px}.lsc span{font-weight:500;opacity:.8;font-size:14px}
+.lbt{background:#fff!important;color:#0b3a2f!important;text-decoration:none;border:0}
+.ldots{display:flex;justify-content:center;gap:6px;margin:4px 0 14px}.ldots button{width:8px;height:8px;border-radius:50%;padding:0;border:0;background:var(--line,#ccc);min-height:0}.ldots button.on{width:22px;border-radius:5px;background:#0e5c48}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -617,7 +621,17 @@ function vStart(app){
   const favLast=favMs.filter(m=>m.status==="done").sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""))[0];
   // hero
   const hm=liveD[0];let hero="";
-  if(hm)hero=`<div class="hero" data-go="match-${esc(hm.id)}" style="cursor:pointer"><div class="k"><span class="dot"></span>Live now · ${esc(hm.tournament)}</div>
+  const lvAll=[...liveD,...liveL];
+  const slide=m=>{const loc=!!m.local;const i=loc?curInn(m):null;const c=i?calc(i):null;
+    const lab=loc?`Local · ${esc((S.teams[m.teamA]||{}).district||"J&K")}`:esc(m.tournament);
+    const score=loc?(c?`<div class="lsc">${esc(tsn(i.bat))} <b>${c.runs}/${c.wkts}</b> <span>(${ov(c.legal)}${m.overs?"/"+m.overs:""} ov)</span></div>`:`<div class="lsc"><span>About to start</span></div>`)
+      :(m.innings&&m.innings.length?`<div class="lsc">${esc(tsn(m.teamA))} ${teamScore(m,m.teamA)} · ${esc(tsn(m.teamB))} ${teamScore(m,m.teamB)}</div>`:`<div class="lsc"><span>${esc(m.venue||"")}</span></div>`);
+    const btn=loc?`<span class="btn lbt">Watch ball by ball ›</span>`:m.cricinfo?`<a class="btn lbt" href="${esc(m.cricinfo)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔴 Live score on ESPNcricinfo</a>`:bcciUrl(m)?`<a class="btn lbt" href="${esc(bcciUrl(m))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔴 Live score on BCCI.tv</a>`:`<span class="btn lbt">Open match ›</span>`;
+    return`<div class="hero lsl" data-go="match-${esc(m.id)}"><div class="k"><span class="dot"></span>Live · ${lab}</div><div class="vs">${esc(tn(m.teamA))} <span style="opacity:.6;font-weight:600">vs</span> ${esc(tn(m.teamB))}</div>${score}<div style="margin-top:12px">${btn}</div></div>`;};
+  const carousel=lvAll.length?`<div class="hh" style="margin-top:0"><h3><span class="ldot" style="display:inline-block;margin-right:6px"></span>Live now · ${lvAll.length}</h3>${lvAll.length>1?`<span class="small muted">Swipe ›</span>`:""}</div>
+    <div class="lcar" id="lcar">${lvAll.map(slide).join("")}</div>${lvAll.length>1?`<div class="ldots" id="ldots">${lvAll.map((_,i)=>`<button aria-label="Live match ${i+1}" data-i="${i}" class="${i?"":"on"}"></button>`).join("")}</div>`:""}`:"";
+  if(lvAll.length)hero="";
+  else if(hm)hero=`<div class="hero" data-go="match-${esc(hm.id)}" style="cursor:pointer"><div class="k"><span class="dot"></span>Live now · ${esc(hm.tournament)}</div>
      <div class="vs">${esc(tn(hm.teamA))} <span style="opacity:.6;font-weight:600">vs</span> ${esc(tn(hm.teamB))}</div>
      ${hm.innings&&hm.innings.length?`<div style="font-size:18px;font-weight:700">${esc(tsn(hm.teamA))} ${teamScore(hm,hm.teamA)} · ${esc(tsn(hm.teamB))} ${teamScore(hm,hm.teamB)}</div>`:""}
      <div style="margin-top:14px">${hm.cricinfo?`<a class="btn" href="${esc(hm.cricinfo)}" target="_blank" rel="noopener" style="background:#fff;color:#0b3a2f;text-decoration:none" onclick="event.stopPropagation()">🔴 Watch live score</a>`:`<span class="btn" style="background:#fff;color:#0b3a2f">Open match</span>`}</div></div>`;
@@ -634,8 +648,8 @@ function vStart(app){
   const topR=sst.filter(p=>p.r>0).sort((a,b)=>b.r-a.r)[0],topW=sst.filter(p=>p.w>0).sort((a,b)=>b.w-a.w||a.br-b.br)[0];
   const favLine=m=>m?(m.status==="done"?esc(m.result||"Result"):m.status==="live"||inPlay(m)?"🔴 Live now":"🕒 "+esc(ftime(m.start)||fdate(m.date))):"";
   app.innerHTML=`
-  ${hero}
-  ${liveL.length?`<div class="hh"><h3><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e53935;margin-right:6px;animation:pulse 1.4s infinite"></span>Local matches live</h3><a href="#local">All local ›</a></div><div class="hsc">${liveL.slice(0,10).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</span><b>${(()=>{const i=curInn(m);if(!i)return"–";const c=calc(i);return c.runs+"/"+c.wkts;})()}</b><span>${esc((S.teams[m.teamA]||{}).district||"")}</span></div>`).join("")}</div>`:""}
+  ${carousel}${hero}
+  ${false&&liveL.length?`<div class="hh"><h3><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e53935;margin-right:6px;animation:pulse 1.4s infinite"></span>Local matches live</h3><a href="#local">All local ›</a></div><div class="hsc">${liveL.slice(0,10).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</span><b>${(()=>{const i=curInn(m);if(!i)return"–";const c=calc(i);return c.runs+"/"+c.wkts;})()}</b><span>${esc((S.teams[m.teamA]||{}).district||"")}</span></div>`).join("")}</div>`:""}
   <div class="qa" style="margin-top:6px"><a class="pri" href="#newmatch"><span class="e">▶</span>Score a match<small>Live, ball by ball. No sign-up.</small></a><a href="#register"><span class="e">🏟️</span>Register your club<small>Free club page, squad &amp; stats</small></a></div>
   ${star?`<div class="hh"><h3>⭐ Player of the Month</h3><a href="#local" id="hpotm">Leaderboard ›</a></div>
    <div class="card" style="margin:0"><div class="star"><div class="av" style="background:hsl(${ppHue(star.id)},55%,42%)">${esc(ppInit(pn(star.id)))}</div><div style="min-width:0;flex:1"><div class="link" data-p="${esc(star.id)}" style="font-size:18px;font-weight:800">${esc(pn(star.id))}</div>
@@ -649,6 +663,13 @@ function vStart(app){
   ${up.length>1?`<div class="hh"><h3>Coming up</h3><a href="#matches">All matches ›</a></div><div class="hsc">${up.filter(m=>m!==nextSr).slice(0,8).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(CAT_SH[catOf(m.tournament)]||m.tournament)}</span><b style="font-size:15px;margin:4px 0">${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</b><span>${esc(ftime(m.start))}</span></div>`).join("")}</div>`:""}
   ${!PUSH.sub&&PUSH.cfg.worker&&(hm||!nextSr)?`<div class="card" style="margin-top:16px;display:flex;gap:12px;align-items:center"><span style="font-size:26px">🔔</span><div style="flex:1"><b>Never miss a J&amp;K match</b><div class="small muted">Get an alert when J&amp;K start and when the result is in.</div></div><button class="btn sm" id="halert2">Turn on</button></div>`:""}`;
   tickCd();bindGo(app);bindP(app);
+  {const car=$("#lcar"),dots=$("#ldots");if(car&&dots){const n=car.children.length;let user=false,t;
+    const idx=()=>Math.round(car.scrollLeft/car.clientWidth);
+    const mark=()=>dots.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("on",i===idx()));
+    car.addEventListener("scroll",()=>{clearTimeout(t);t=setTimeout(mark,80);},{passive:true});
+    ["touchstart","pointerdown","wheel"].forEach(ev=>car.addEventListener(ev,()=>{user=true;},{passive:true}));
+    dots.querySelectorAll("button").forEach(b=>b.onclick=()=>{user=true;car.scrollTo({left:+b.dataset.i*car.clientWidth,behavior:"smooth"});});
+    clearInterval(window.__lcarT);window.__lcarT=setInterval(()=>{if(!document.body.contains(car)){clearInterval(window.__lcarT);return;}if(user||document.hidden)return;car.scrollTo({left:((idx()+1)%n)*car.clientWidth,behavior:"smooth"});},6000);}}
   ["#halert","#halert2"].forEach(x=>{const b=$(x);if(b)b.onclick=ev=>{ev.stopPropagation();PUSH.open();};});
   const hp=$("#hpotm");if(hp)hp.onclick=()=>{S.lTab="potm";};
   
