@@ -131,6 +131,8 @@ input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90de
 .lcar .lsl{flex:0 0 100%;scroll-snap-align:center;margin:0;cursor:pointer;box-sizing:border-box}.lsc{font-size:17px;font-weight:700;margin-top:4px}.lsc span{font-weight:500;opacity:.8;font-size:14px}
 .lbt{background:#fff!important;color:#0b3a2f!important;text-decoration:none;border:0}
 .ldots{display:flex;justify-content:center;gap:6px;margin:4px 0 14px}.ldots button{width:8px;height:8px;border-radius:50%;padding:0;border:0;background:var(--line,#ccc);min-height:0}.ldots button.on{width:22px;border-radius:5px;background:#0e5c48}
+.cdc{display:inline-block;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;background:#fff4d6;color:#8a5a00;font-variant-numeric:tabular-nums}.cdc.soon{background:#fde2e2;color:#a11b1b}
+.mcd{margin:16px auto 0;max-width:340px;background:linear-gradient(135deg,#0e5c48,#0b3a2f);color:#fff;border-radius:16px;padding:14px;text-align:center}.mcd .cd{justify-content:center;margin:10px 0 2px}.mcd .cd div{background:rgba(255,255,255,.12);border-radius:12px;padding:8px 0;min-width:62px}.mcd .cd b{display:block;font-size:24px;font-variant-numeric:tabular-nums}.mcd .cd span{font-size:11px;opacity:.75}.mcd .cd{display:flex;gap:8px}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -568,7 +570,7 @@ function matchCard(m){
   let sub="";
   if(ip&&m.status!=="live")sub=`<div class="small" style="margin-top:6px;font-weight:700;color:#c81e1e">Live now${m.cricinfo?" · tap for the live scorecard":""}</div>`;else 
   if(up&&pending(m))sub=`<div class="small muted" style="margin-top:6px">Match finished · result is added overnight${m.cricinfo?" (tap for the scorecard on ESPNcricinfo)":""}</div>`;
-  else if(up)sub=`<div class="small" style="margin-top:6px">🕒 ${esc(ftime(m.start)||fdate(m.date))}${m.venue?` · ${esc(m.venue)}`:""}</div>`;
+  else if(up)sub=`<div class="small" style="margin-top:6px">🕒 ${esc(ftime(m.start)||fdate(m.date))}${m.venue?` · ${esc(m.venue)}`:""}</div>${cdOk(m)?`<div style="margin-top:8px">${cdc(m)}</div>`:""}`;
   else if(live&&m.innings&&m.innings.length===2&&!curInn(m).closed){const c=calc(curInn(m));const need=target(m)-c.runs;const left=m.overs*6-c.legal;sub=`<div class="small" style="margin-top:6px">${esc(tsn(curInn(m).bat))} need <b>${need}</b> from ${left} ball${left===1?"":"s"}</div>`;}
   else if(m.result)sub=`<div class="small res" style="margin-top:6px">${esc(m.result)}</div>`;
   else if(live&&m.toss)sub=`<div class="small muted" style="margin-top:6px">${esc(tsn(m.toss.w))} won the toss, chose to ${esc(m.toss.d)}</div>`;
@@ -588,6 +590,13 @@ const jkIn=m=>isJKid(m.teamA)||isJKid(m.teamB);
 function cdHtml(iso){return`<div class="cd" data-cd="${esc(iso)}">${["days","hrs","min","sec"].map(u=>`<div><b>–</b><span>${u}</span></div>`).join("")}</div>`;}
 function tickCd(){document.querySelectorAll("[data-cd]").forEach(el=>{let d=Math.max(0,Date.parse(el.dataset.cd)-Date.now())/1000;const v=[Math.floor(d/86400),Math.floor(d%86400/3600),Math.floor(d%3600/60),Math.floor(d%60)];
   el.querySelectorAll("b").forEach((b,i)=>b.textContent=String(v[i]).padStart(i?2:1,"0"));if(d<=0&&!el.dataset.done){el.dataset.done=1;setTimeout(()=>{if(route().v==="home")render();},1500);}});}
+const isSrM=m=>m&&!m.local&&catOf(m.tournament)==="Senior Men";
+const cdOk=m=>isSrM(m)&&m.status==="upcoming"&&m.start&&Date.parse(m.start)>Date.now();
+const cdc=m=>`<span class="cdc" data-cdc="${esc(m.start)}">⏳ Starts in …</span>`;
+function cdTxt(ms){if(ms<=0)return"🔴 Starting now";const s=Math.floor(ms/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),mi=Math.floor(s%3600/60),se=s%60;
+  return"⏳ Starts in "+(d?`${d}d ${h}h ${String(mi).padStart(2,"0")}m`:h?`${h}h ${String(mi).padStart(2,"0")}m ${String(se).padStart(2,"0")}s`:`${mi}m ${String(se).padStart(2,"0")}s`);}
+setInterval(()=>{document.querySelectorAll("[data-cdc]").forEach(el=>{const ms=Date.parse(el.dataset.cdc)-Date.now();el.textContent=cdTxt(ms);el.classList.toggle("soon",ms<3*3600e3);
+  if(ms<=0&&!el.dataset.done){el.dataset.done=1;setTimeout(()=>{const a=document.activeElement;if(!(a&&a.matches&&a.matches("input,select,textarea")))render();},2000);}});},1000);
 setInterval(tickCd,1000);
 function followPicker(){
   const ord=["t-jk","t-jk-u23","t-jk-u19","t-jk-u16","t-jkw","t-jkw-u23","t-jkw-u19"];
@@ -1111,6 +1120,7 @@ function vUpcoming(app,m){
    <div class="row sp" style="margin-top:14px;justify-content:center;gap:18px;text-align:center"><b style="font-size:20px">${esc(tn(m.teamA))}</b><span class="muted">vs</span><b style="font-size:20px">${esc(tn(m.teamB))}</b></div>
    <div style="text-align:center;margin-top:12px"><div style="font-weight:700">🕒 ${esc(ftime(m.start)||fdate(m.date))}</div><div class="small muted" style="margin-top:4px">${esc(m.venue||"Venue TBA")} · ${m.overs||20} overs a side · shown in your local time</div></div>
    ${inPlay(m)?`<div style="text-align:center;margin-top:14px"><span class="tag live">Live now</span></div>`:""}
+   ${cdOk(m)?`<div class="mcd"><div class="small" style="opacity:.85;font-weight:700;letter-spacing:.06em">MATCH STARTS IN</div>${cdHtml(m.start)}</div>`:""}
    ${m.cricinfo||bcciUrl(m)?`<div style="text-align:center;margin-top:14px">${ciBtn(m,inPlay(m))}</div>`:""}
    <p class="small muted" style="text-align:center;margin:14px 0 0">${m.cricinfo?"Ball-by-ball live score is on ESPNcricinfo. ":""}The full scorecard and player stats are added here after the match.</p></div>
   ${sq.length?`<div class="card"><h3>J&amp;K squad</h3>${sq.map(id=>`<div class="pl"><span class="link" data-p="${esc(id)}" style="font-weight:600">${esc(pn(id))}</span><span class="small muted">${esc((S.players[id]||{}).role||"")}</span></div>`).join("")}${m.note?`<p class="small muted" style="margin:8px 0 0">${esc(m.note)}</p>`:""}</div>`:""}
@@ -1458,7 +1468,7 @@ function fxRow(m){const jk=isJKid(m.teamA)?m.teamA:isJKid(m.teamB)?m.teamB:null;
   let badge="";if(m.status==="done"){const o=outcome(m);const r=!o||!jk?"":o.type==="win"?(o.w===jk?"W":"L"):o.type==="draw"?"D":o.type==="tie"?"T":"NR";badge=r?`<span class="wl ${r}">${r}</span>`:"";}
   const home=jk&&jk===m.teamA;
   const line=m.status==="done"?esc(m.result||"Result"):pending(m)?"Result coming soon":`${m.start?"🕒 "+esc(new Date(m.start).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}))+" · ":""}📍 ${esc(m.venue||"Venue TBA")}`;
-  return`<div class="frow" data-go="match-${esc(m.id)}"><div class="fd"><b>${dd}</b><span>${mo}</span><small>${wd}</small></div><div class="fm"><div class="fv">${jk?`<span class="muted" style="font-weight:500">vs</span> ${esc(tn(opp))}`:`${esc(tn(m.teamA))} vs ${esc(tn(m.teamB))}`}${badge}</div><div class="small muted fl">${line}</div>${m.matchNo?`<div class="small muted" style="opacity:.75">${esc(m.matchNo)}</div>`:""}</div><span class="chev">›</span></div>`;}
+  return`<div class="frow" data-go="match-${esc(m.id)}"><div class="fd"><b>${dd}</b><span>${mo}</span><small>${wd}</small></div><div class="fm"><div class="fv">${jk?`<span class="muted" style="font-weight:500">vs</span> ${esc(tn(opp))}`:`${esc(tn(m.teamA))} vs ${esc(tn(m.teamB))}`}${badge}</div><div class="small muted fl">${line}</div>${cdOk(m)?`<div style="margin-top:4px">${cdc(m)}</div>`:m.matchNo?`<div class="small muted" style="opacity:.75">${esc(m.matchNo)}</div>`:""}</div><span class="chev">›</span></div>`;}
 function vTours(app){
   if(!S.sqData){app.innerHTML=`<div class="card empty">Loading…</div>`;loadSq(()=>{if(route().v==="tournaments")vTours(app);});return;}
   const ts=allTours();const ms=Object.values(S.matches).filter(m=>!m.local&&seasonOf(m.date)===CUR_SEASON);
