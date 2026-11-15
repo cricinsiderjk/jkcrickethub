@@ -2,6 +2,22 @@
 importScripts("push-config.js");
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
+/* App shell: always try the network first (so the site is never stale), keep a copy for when there's no signal. */
+const SHELL = "ci-shell-v1";
+self.addEventListener("fetch", e => {
+  const r = e.request, u = new URL(r.url);
+  if (r.method !== "GET" || u.origin !== self.location.origin) return;
+  e.respondWith((async () => {
+    try {
+      const res = await fetch(r);
+      if (res && res.ok) { const c = await caches.open(SHELL); c.put(r.mode === "navigate" ? "./" : r, res.clone()); }
+      return res;
+    } catch (err) {
+      const c = await caches.open(SHELL);
+      return (await c.match(r.mode === "navigate" ? "./" : r, { ignoreSearch: true })) || (await c.match("./")) || Response.error();
+    }
+  })());
+});
 self.addEventListener("push", e => {
   const W = (self.PUSH_CONFIG || {}).worker;
   e.waitUntil((async () => {

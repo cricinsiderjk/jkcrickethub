@@ -6,7 +6,7 @@
 <title>CricInsider.jk – J&amp;K cricket scores &amp; stats</title>
 <meta name="description" content="Ad-free scores, scorecards and player stats for Jammu &amp; Kashmir cricket: Ranji Trophy, Syed Mushtaq Ali Trophy, Vijay Hazare and more.">
 <meta property="og:title" content="CricInsider.jk"><meta property="og:description" content="Ad-free J&amp;K cricket scores, scorecards and player stats.">
-<meta name="theme-color" content="#0e5c48"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#0e5c48"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="CricInsider"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -133,6 +133,8 @@ input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90de
 .ldots{display:flex;justify-content:center;gap:6px;margin:4px 0 14px}.ldots button{width:8px;height:8px;border-radius:50%;padding:0;border:0;background:var(--line,#ccc);min-height:0}.ldots button.on{width:22px;border-radius:5px;background:#0e5c48}
 .cdc{display:inline-block;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;background:#fff4d6;color:#8a5a00;font-variant-numeric:tabular-nums}.cdc.soon{background:#fde2e2;color:#a11b1b}
 .mcd{margin:16px auto 0;max-width:340px;background:linear-gradient(135deg,#0e5c48,#0b3a2f);color:#fff;border-radius:16px;padding:14px;text-align:center}.mcd .cd{justify-content:center;margin:10px 0 2px}.mcd .cd div{background:rgba(255,255,255,.12);border-radius:12px;padding:8px 0;min-width:62px}.mcd .cd b{display:block;font-size:24px;font-variant-numeric:tabular-nums}.mcd .cd span{font-size:11px;opacity:.75}.mcd .cd{display:flex;gap:8px}
+.instc{display:flex;gap:12px;align-items:center;margin:12px 0 10px;border:2px solid #f2a900}
+#instb{margin-left:auto}#instb:not([hidden])+#bell{margin-left:8px}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -167,7 +169,7 @@ h2{font-size:19px}
 </head>
 <body>
 <header><div class="hwrap">
-  <div class="brand"><a href="#home" style="color:inherit;text-decoration:none">🏏 CricInsider.jk</a> <small>Scores &amp; stats for Jammu &amp; Kashmir cricket · No ads</small><button id="bell" class="bell" hidden title="J&amp;K match alerts">🔔 <span>Alerts</span></button></div>
+  <div class="brand"><a href="#home" style="color:inherit;text-decoration:none">🏏 CricInsider.jk</a> <small>Scores &amp; stats for Jammu &amp; Kashmir cricket · No ads</small><button id="instb" class="bell" hidden title="Install CricInsider as an app">📲 <span>Install</span></button><button id="bell" class="bell" hidden title="J&amp;K match alerts">🔔 <span>Alerts</span></button></div>
   <nav id="nav">
         <a href="#home" data-v="home">🏠 Home</a>
     <a href="#matches" data-v="matches">Matches</a>
@@ -547,9 +549,26 @@ const PUSH={cfg:self.PUSH_CONFIG||{},reg:null,sub:null,
       if(off)off.onclick=async()=>{await this.off();closeModal();toast("Alerts off");};});}
 };
 setTimeout(()=>PUSH.init(),0);
+/* ----- Install as app ----- */
+const APP={evt:null,
+  standalone(){return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;},
+  ios(){return /iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;},
+  inApp(){return /Instagram|FBAN|FBAV|FB_IAB|; wv\)/i.test(navigator.userAgent);},
+  can(){return !this.standalone()&&(!!this.evt||this.ios()||this.inApp());},
+  hidden(){try{return localStorage.getItem("ci_noinst")==="1";}catch(e){return false;}},
+  hide(){try{localStorage.setItem("ci_noinst","1");}catch(e){}render();},
+  async go(){
+    if(this.evt){const e=this.evt;this.evt=null;e.prompt();const r=await e.userChoice.catch(()=>({}));if(r&&r.outcome==="accepted")toast("📲 Installed! Find CricInsider on your home screen.");render();return;}
+    if(this.inApp())return openModal(`<h2 style="margin:0 0 8px;font-size:20px">📲 Install the app</h2><p>Instagram's built-in browser can't install apps. Tap <b>⋯</b> at the top right, choose <b>Open in browser</b> (Chrome), then tap <b>Install app</b> again.</p><div class="row" style="margin-top:12px"><button class="btn" id="cx">Got it</button></div>`,sh=>sh.querySelector("#cx").onclick=closeModal);
+    if(this.ios())return openModal(`<h2 style="margin:0 0 8px;font-size:20px">📲 Add to your iPhone</h2><ol style="padding-left:20px;line-height:1.9;margin:0"><li>Open this page in <b>Safari</b></li><li>Tap the <b>Share</b> button <span style="font-size:18px">⎋</span> at the bottom</li><li>Choose <b>Add to Home Screen</b></li><li>Tap <b>Add</b></li></ol><p class="small muted" style="margin-top:10px">CricInsider then opens full-screen from your home screen, like an app.</p><div class="row" style="margin-top:12px"><button class="btn" id="cx">Got it</button></div>`,sh=>sh.querySelector("#cx").onclick=closeModal);
+    toast("Open your browser menu ⋮ and tap “Install app” or “Add to Home screen”.");}
+};
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();APP.evt=e;render();});
+addEventListener("appinstalled",()=>{APP.evt=null;toast("📲 CricInsider is on your home screen");render();});
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 
 setInterval(()=>{try{if(!document.hidden&&Object.values(S.matches).some(m=>m.start&&!m.local&&m.status!=="done"&&Math.abs(Date.now()-Date.parse(m.start))<5*864e5)&&!document.querySelector(".modal.on")&&!document.activeElement.matches("input,select,textarea"))render();}catch(e){}},60000);
-function render(){
+function render(){{const ib=document.getElementById("instb");if(ib){ib.hidden=!((typeof APP!=="undefined")&&APP.can());ib.onclick=()=>APP.go();}}
   const r=route();
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(r.v==="newmatch"||r.v==="register"||r.v==="playerid"?"local":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v==="team"?(S.teams[r.id]&&S.teams[r.id].local?"local":"teams"):r.v==="tour"?"tournaments":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v)));
   const app=$("#app");
@@ -659,6 +678,7 @@ function vStart(app){
   app.innerHTML=`
   ${carousel}${hero}
   ${liveL.length?`<div class="hh"><h3><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e53935;margin-right:6px;animation:pulse 1.4s infinite"></span>Local matches live</h3><a href="#local">All local ›</a></div><div class="hsc">${liveL.slice(0,10).map(m=>`<div class="c" data-go="match-${esc(m.id)}"><span>${esc(tsn(m.teamA))} vs ${esc(tsn(m.teamB))}</span><b>${(()=>{const i=curInn(m);if(!i)return"–";const c=calc(i);return c.runs+"/"+c.wkts;})()}</b><span>${esc((S.teams[m.teamA]||{}).district||"")}</span></div>`).join("")}</div>`:""}
+  ${(typeof APP!=="undefined")&&APP.can()&&!APP.hidden()?`<div class="card instc"><img src="icon-96.png" alt="" width="52" height="52" style="border-radius:14px;flex:0 0 52px"><div style="flex:1;min-width:0"><b style="font-size:16px">Get the CricInsider app</b><div class="small muted">Opens from your home screen. Free, no Play Store, no ads.</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" id="hinst">📲 Install</button><a href="#home" class="small muted" id="hinstx">Not now</a></div></div>`:""}
   <div class="qa" style="margin-top:6px"><a class="pri" href="#newmatch"><span class="e">▶</span>Score a match<small>Live, ball by ball. No sign-up.</small></a><a href="#register"><span class="e">🏟️</span>Register your club<small>Free club page, squad &amp; stats</small></a></div>
   ${star?`<div class="hh"><h3>⭐ Player of the Month</h3><a href="#local" id="hpotm">Leaderboard ›</a></div>
    <div class="card" style="margin:0"><div class="star"><div class="av" style="background:hsl(${ppHue(star.id)},55%,42%)">${esc(ppInit(pn(star.id)))}</div><div style="min-width:0;flex:1"><div class="link" data-p="${esc(star.id)}" style="font-size:18px;font-weight:800">${esc(pn(star.id))}</div>
@@ -679,6 +699,7 @@ function vStart(app){
     ["touchstart","pointerdown","wheel"].forEach(ev=>car.addEventListener(ev,()=>{user=true;},{passive:true}));
     dots.querySelectorAll("button").forEach(b=>b.onclick=()=>{user=true;car.scrollTo({left:+b.dataset.i*car.clientWidth,behavior:"smooth"});});
     clearInterval(window.__lcarT);window.__lcarT=setInterval(()=>{if(!document.body.contains(car)){clearInterval(window.__lcarT);return;}if(user||document.hidden)return;car.scrollTo({left:((idx()+1)%n)*car.clientWidth,behavior:"smooth"});},6000);}}
+  {const b=$("#hinst");if(b)b.onclick=()=>APP.go();const x=$("#hinstx");if(x)x.onclick=e=>{e.preventDefault();APP.hide();};}
   ["#halert","#halert2"].forEach(x=>{const b=$(x);if(b)b.onclick=ev=>{ev.stopPropagation();PUSH.open();};});
   const hp=$("#hpotm");if(hp)hp.onclick=()=>{S.lTab="potm";};
   

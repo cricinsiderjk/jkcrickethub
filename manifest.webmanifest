@@ -1,1 +1,24 @@
-{"name":"CricInsider.jk","short_name":"CricInsider.jk","start_url":"./","display":"standalone","background_color":"#f4f3ee","theme_color":"#0e5c48","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}
+{
+ "id": "./",
+ "name": "CricInsider.jk – J&K cricket",
+ "short_name": "CricInsider",
+ "description": "Every J&K cricket match in one place: fixtures, live score links, results, stats and local club scoring. Free, no ads.",
+ "start_url": "./?source=app#home",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#0e5c48",
+ "theme_color": "#0e5c48",
+ "categories": ["sports"],
+ "icons": [
+  {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+  {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+  {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+  {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+ ],
+ "shortcuts": [
+  {"name": "Matches", "url": "./?source=app#matches", "icons": [{"src": "icon-96.png", "sizes": "96x96"}]},
+  {"name": "Score a match", "url": "./?source=app#newmatch", "icons": [{"src": "icon-96.png", "sizes": "96x96"}]},
+  {"name": "Stats", "url": "./?source=app#players", "icons": [{"src": "icon-96.png", "sizes": "96x96"}]}
+ ]
+}
