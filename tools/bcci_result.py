@@ -11,7 +11,7 @@ Exit codes: 0 = written, 2 = not finished yet, 1 = error.
 import json, re, sys, urllib.request
 
 ALIASES = {  # spellings BCCI uses -> existing player ids
-    "ananaya sharma": "p-ananya-sharma", "mariya noorain": "p-maria-noorain",
+    "ananaya sharma": "p-ananya-sharma", "mariya noorain": "p-maria-noorain", "aashutosh mahajan": "p-ashutosh-mahajan",
     "sp khajuria": "p-shubham-khajuria", "shubham singh pundir": "p-shubham-pundir",
     "sr kumar": "p-sunil-kumar", "lone nasir": "p-lone-nasir-muzaffar", "umar nazir mir": "p-umar-nazir",
     "yudhvir singh charak": "p-yudhvir-singh", "yawar hasan": "p-yawer-hassan", "kanhaiya wadhwan": "p-kanhaiya-wadhawan",
@@ -55,7 +55,9 @@ def main():
         byname[k] = i; return i
     xi = [gid(p["player_id"]) for p in bt_team["player"]]
     inns = []
-    for i in j["innings"]:
+    for n_i, i in enumerate(j["innings"]):
+        if n_i >= 2 and (m.get("overs") or 0) and str(i.get("ball_limit") or "") in ("6", "12"):
+            continue  # super over: not part of the scorecard or player stats
         jb = tid.get(i["batting_team_id"]) == jk
         ed = ", ".join(f"{k} {v}" for k, v in (("b", i.get("byes")), ("lb", i.get("legbyes")), ("w", i.get("wides")), ("nb", i.get("noballs")), ("pen", i.get("penalties"))) if v and int(v))
         card = {"total": int(i["runs"]), "wkts": int(i["wickets"]), "balls": int(i.get("balls_bowled") or i.get("total_balls_bowled") or 0) or None,
@@ -71,7 +73,7 @@ def main():
         inns.append({"bat": jk if jb else opp, "bowl": opp if jb else jk, "balls": [], "closed": True, "card": card})
     res = mt.get("result_string") or ""
     for t in j["team"]: res = res.replace(t["name"], T[tid[t["team_id"]]]["name"])
-    res = re.sub(r"\bwin by\b", "won by", res)
+    res = re.sub(r"\bwin by\b", "won by", res).replace("win the super over", "won the super over")
     w = tid.get(mt.get("winner_team_id"))
     m.update({"status": "done", "winner": w, "result": res, "innings": inns, "xi": {jk: xi, opp: []},
               "src": f"https://www.bcci.tv/matches/{m['bcci']}/match", "srcName": "BCCI match centre"})
