@@ -8,7 +8,7 @@ match complete, writes status, winner, result, XI and the J&K batting/bowling ca
 Only J&K players are stored. It refuses to touch matches with ball-by-ball data.
 Exit codes: 0 = written, 2 = not finished yet, 1 = error.
 """
-import json, re, sys, urllib.request
+import difflib, json, re, sys, urllib.request
 
 ALIASES = {  # spellings BCCI uses -> existing player ids
     "ananaya sharma": "p-ananya-sharma", "mariya noorain": "p-maria-noorain", "aashutosh mahajan": "p-ashutosh-mahajan",
@@ -48,10 +48,18 @@ def main():
     team = T[jk]; byname = {p["name"].lower(): p["id"] for p in team["players"]}; have = {p["id"] for p in team["players"]}
     allids = {p["id"]: p for t in T.values() for p in t.get("players", [])}
     added = []
+    def squash(x): return re.sub(r"(.)\1+", r"\1", re.sub(r"[^a-z ]", "", x.lower())).split()
+    def near(n):  # same team, same person spelt slightly differently (Arfat/Arfaat, Partap/Pratap, name with/without surname)
+        a = squash(n); hits = set()
+        for p in team["players"]:
+            b = squash(p["name"])
+            if len(a) >= 2 and len(b) >= 2 and (a == b[:len(a)] or b == a[:len(b)]): hits.add(p["id"]); continue
+            if len(a) == len(b) and difflib.SequenceMatcher(None, " ".join(a), " ".join(b)).ratio() >= 0.88: hits.add(p["id"])
+        return hits.pop() if len(hits) == 1 else None
     def gid(bp):
         n = names[bp]; k = n.lower()
         if k in byname: return byname[k]
-        i = ALIASES.get(k) or pid(n)
+        i = ALIASES.get(k) or near(n) or pid(n)
         if i not in have:
             src = next((p for p in j["team"] for p in p["player"] if p["player_id"] == bp), {})
             role = ROLE.get((src.get("player_role") or "").lower(), "Wicket-keeper" if src.get("is_keeper") == "1" else "Player")

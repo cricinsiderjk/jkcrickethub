@@ -1,0 +1,27 @@
+name: BCCI results (auto)
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+concurrency: { group: bcci-results, cancel-in-progress: false }
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - id: run
+        run: python3 tools/auto_results.py
+      - if: steps.run.outputs.msg != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "CricInsider bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "${{ steps.run.outputs.msg }}"
+          git pull --rebase origin main && git push origin HEAD:main
+          gh api -X POST repos/${{ github.repository }}/pages/builds || true
