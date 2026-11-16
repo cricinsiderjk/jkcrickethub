@@ -31,7 +31,12 @@ def main():
     if "--file" in a: j = json.load(open(a[a.index("--file") + 1]))
     else:
         req = urllib.request.Request(f"https://stats.bcci.tv/match/{m['bcci']}/scorecard", headers={"User-Agent": "Mozilla/5.0", "Referer": "https://www.bcci.tv/"})
-        j = json.load(urllib.request.urlopen(req, timeout=30))
+        import time
+        for t in range(6):  # BCCI's server sometimes drops connections: retry
+            try: j = json.load(urllib.request.urlopen(req, timeout=30)); break
+            except Exception as e:
+                if t == 5: print("BCCI unreachable after 6 tries:", e); sys.exit(1)
+                time.sleep(10 * (t + 1))
     mt = j["match"]
     if mt.get("match_status") != "complete": print("not finished:", mt.get("match_status"), mt.get("live_status_name")); sys.exit(2)
     jkids = [t for t in (m["teamA"], m["teamB"]) if t.startswith("t-jk")]
