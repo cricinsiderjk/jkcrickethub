@@ -135,6 +135,16 @@ input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90de
 .mcd{margin:16px auto 0;max-width:340px;background:linear-gradient(135deg,#0e5c48,#0b3a2f);color:#fff;border-radius:16px;padding:14px;text-align:center}.mcd .cd{justify-content:center;margin:10px 0 2px}.mcd .cd div{background:rgba(255,255,255,.12);border-radius:12px;padding:8px 0;min-width:62px}.mcd .cd b{display:block;font-size:24px;font-variant-numeric:tabular-nums}.mcd .cd span{font-size:11px;opacity:.75}.mcd .cd{display:flex;gap:8px}
 .instc{display:flex;gap:12px;align-items:center;margin:12px 0 10px;border:2px solid #f2a900}
 #instb{margin-left:auto}#instb:not([hidden])+#bell{margin-left:8px}
+#bnav{display:none}
+@media (max-width:640px){
+ #nav{display:none!important}
+ #bnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card,#fff);border-top:1px solid var(--line,#e5e5e5);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(0,0,0,.06)}
+ #bnav a,#bnav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:#6b7280;text-decoration:none;background:none;border:0;padding:4px 0;min-height:48px;justify-content:center;cursor:pointer;font-family:inherit}
+ #bnav .on{color:#0e5c48}#bnav .on svg{stroke-width:2.4}
+ .mlist a[href="#local"] b{color:#b7860b}
+ body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+}
+.mlist{display:flex;flex-direction:column;margin-top:10px}.mlist a{display:flex;flex-direction:column;padding:14px 4px;border-bottom:1px solid var(--line,#eee);text-decoration:none;color:inherit}.mlist a span{font-size:13px;color:#6b7280}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
 /* polish */
@@ -181,6 +191,7 @@ h2{font-size:19px}
     <a href="#local" data-v="local" class="nloc">🏏 Local club cricket</a>
   </nav>
 </div></header>
+<nav id="bnav" aria-label="Main"><a href="#home" data-b="home"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg><span>Home</span></a><a href="#matches" data-b="matches"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Matches</span></a><a href="#squads" data-b="squads"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 13.7c3.1-.4 5.5 1.6 5.5 4.8"/></svg><span>Squads</span></a><a href="#stats" data-b="stats"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Stats</span></a><button type="button" data-b="more" id="bmore"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>More</span></button></nav>
 <main id="app"><div class="empty">Loading…</div></main>
 <footer>CricInsider.jk · made for J&amp;K cricket fans by <a href="https://instagram.com/cricinsiderjk" target="_blank" rel="noopener">@cricinsiderjk</a> · free &amp; ad-free · stats updated after every match</footer>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
@@ -570,6 +581,11 @@ if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWor
 setInterval(()=>{try{if(!document.hidden&&Object.values(S.matches).some(m=>m.start&&!m.local&&m.status!=="done"&&Math.abs(Date.now()-Date.parse(m.start))<5*864e5)&&!document.querySelector(".modal.on")&&!document.activeElement.matches("input,select,textarea"))render();}catch(e){}},60000);
 function render(){{const ib=document.getElementById("instb");if(ib){ib.hidden=!((typeof APP!=="undefined")&&APP.can());ib.onclick=()=>APP.go();}}
   const r=route();
+  {const v=r.v,loc=v==="local"||v==="newmatch"||v==="register"||(v==="match"&&S.matches[r.id]&&S.matches[r.id].local)||(v==="team"&&S.teams[r.id]&&S.teams[r.id].local);
+   const k=loc?"more":v==="home"?"home":(v==="matches"||v==="match")?"matches":v==="squads"?"squads":(v==="stats"||v==="player")?"stats":"more";
+   document.querySelectorAll("#bnav [data-b]").forEach(a=>a.classList.toggle("on",a.dataset.b===k));
+   const bm=document.getElementById("bmore");if(bm)bm.onclick=()=>openModal(`<div class="row sp"><h2 style="margin:0;font-size:20px">More</h2><button class="btn g sm" id="cx">Close</button></div>
+     <div class="mlist">${[["local","Local club cricket","Live club scores · score your own match"],["tournaments","Tournaments","Every J&K BCCI tournament"],["leaders","Leaderboards","Top run-scorers and wicket-takers"],["register","Register your club","Free club page and stats"]].map(([h,t,d])=>`<a href="#${h}" data-close><b>${t}</b><span>${d}</span></a>`).join("")}</div>`,sh=>{sh.querySelector("#cx").onclick=closeModal;sh.querySelectorAll("[data-close]").forEach(a=>a.onclick=()=>closeModal());});}
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(r.v==="newmatch"||r.v==="register"||r.v==="playerid"?"local":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v==="team"?(S.teams[r.id]&&S.teams[r.id].local?"local":"teams"):r.v==="tour"?"tournaments":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v)));
   const app=$("#app");
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
@@ -588,7 +604,7 @@ function matchCard(m){
   const ip=inPlay(m);const live=m.status==="live"||ip,up=m.status==="upcoming"&&!ip;
   let sub="";
   if(ip&&m.status!=="live")sub=`<div class="small" style="margin-top:6px;font-weight:700;color:#c81e1e">Live now${m.cricinfo?" · tap for the live scorecard":""}</div>`;else 
-  if(up&&pending(m))sub=`<div class="small muted" style="margin-top:6px">Match finished · result is added overnight${m.cricinfo?" (tap for the scorecard on ESPNcricinfo)":""}</div>`;
+  if(up&&pending(m))sub=`<div class="small muted" style="margin-top:6px">Match finished · result is added this evening${m.cricinfo?" (tap for the scorecard on ESPNcricinfo)":""}</div>`;
   else if(up)sub=`<div class="small" style="margin-top:6px">🕒 ${esc(ftime(m.start)||fdate(m.date))}${m.venue?` · ${esc(m.venue)}`:""}</div>${cdOk(m)?`<div style="margin-top:8px">${cdc(m)}</div>`:""}`;
   else if(live&&m.innings&&m.innings.length===2&&!curInn(m).closed){const c=calc(curInn(m));const need=target(m)-c.runs;const left=m.overs*6-c.legal;sub=`<div class="small" style="margin-top:6px">${esc(tsn(curInn(m).bat))} need <b>${need}</b> from ${left} ball${left===1?"":"s"}</div>`;}
   else if(m.result)sub=`<div class="small res" style="margin-top:6px">${esc(m.result)}</div>`;
