@@ -81,7 +81,7 @@ th.l,td.l{text-align:left;white-space:normal}
 .tabs button{border:1px solid var(--line);background:transparent;color:var(--muted);font:600 13px Inter,sans-serif;padding:7px 13px;border-radius:999px;cursor:pointer}
 .tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .empty{text-align:center;color:var(--muted);padding:26px 10px}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;padding:36px 12px;overflow:auto;z-index:20}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;padding:calc(24px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom));overflow:auto;z-index:50}
 .modal.on{display:flex}
 .sheet{background:var(--card);border:1px solid var(--line);border-radius:16px;width:100%;max-width:720px;padding:18px}
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:13.5px;display:none;z-index:30}
@@ -138,13 +138,16 @@ input.pp-ok{border-color:#2a9d5c!important;background-image:linear-gradient(90de
 #bnav{display:none}
 @media (max-width:640px){
  #nav{display:none!important}
- #bnav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card,#fff);border-top:1px solid var(--line,#e5e5e5);padding:8px max(4px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(4px,env(safe-area-inset-left));box-shadow:0 -4px 18px rgba(0,0,0,.06)}
+ #bnav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card,#fff);border-top:1px solid var(--line,#e5e5e5);padding:8px max(4px,env(safe-area-inset-right)) max(10px,calc(env(safe-area-inset-bottom) - 12px)) max(4px,env(safe-area-inset-left));box-shadow:0 -4px 18px rgba(0,0,0,.06)}
  #bnav a,#bnav button{-webkit-appearance:none;appearance:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:52px;padding:2px 0;margin:0;border:0;background:none;font-family:inherit;font-size:11.5px;font-weight:600;line-height:1.1;letter-spacing:.01em;color:#6b7280;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
  #bnav svg{display:block;width:24px;height:24px;padding:4px 16px;border-radius:999px;box-sizing:content-box;transition:background .15s}
  #bnav span{display:block;text-align:center;white-space:nowrap}
  #bnav [data-b]{opacity:1!important}#bnav [data-b]:not(.on){color:#6b7280!important}#bnav [data-b].on{color:#0e5c48!important}#bnav .on svg{background:#e3f3ec;stroke-width:2.1}
  body{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
 }
+.modal.bottom{align-items:flex-end;padding:0}.modal.bottom .sheet{max-width:640px;border-radius:20px 20px 0 0;border-bottom:0;padding:16px 18px calc(16px + env(safe-area-inset-bottom));animation:sheetup .18s ease-out}
+@keyframes sheetup{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-color-scheme:dark){#bnav .on svg{background:rgba(61,189,147,.18)}#bnav [data-b].on{color:#5fd3a8!important}#bnav [data-b]:not(.on){color:#98a2aa!important}#bnav{box-shadow:none}}
 .mlist{display:flex;flex-direction:column;margin-top:10px}.mlist a{display:flex;flex-direction:column;padding:14px 4px;border-bottom:1px solid var(--line,#eee);text-decoration:none;color:inherit}.mlist a span{font-size:13px;color:#6b7280}
 .prow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.prow input{flex:1 1 auto}.prow select{flex:0 0 132px;width:132px}.prow .x{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 6px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
@@ -518,8 +521,8 @@ function stats(f={}){
 }
 
 /* ---------- modal ---------- */
-function openModal(html,mount){$("#sheet").innerHTML=html;$("#modal").classList.add("on");mount&&mount($("#sheet"));}
-function closeModal(){$("#modal").classList.remove("on");$("#sheet").innerHTML="";}
+function openModal(html,mount){$("#modal").classList.remove("bottom");$("#sheet").innerHTML=html;$("#modal").classList.add("on");mount&&mount($("#sheet"));}
+function closeModal(){$("#modal").classList.remove("on","bottom");$("#sheet").innerHTML="";}
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
 
 /* ---------- routing ---------- */
@@ -585,8 +588,8 @@ function render(){{const ib=document.getElementById("instb");if(ib){ib.hidden=!(
   {const v=r.v,loc=v==="local"||v==="newmatch"||v==="register"||(v==="match"&&S.matches[r.id]&&S.matches[r.id].local)||(v==="team"&&S.teams[r.id]&&S.teams[r.id].local);
    const k=loc?"more":v==="home"?"home":(v==="matches"||v==="match")?"matches":v==="squads"?"squads":(v==="stats"||v==="player")?"stats":"more";
    document.querySelectorAll("#bnav [data-b]").forEach(a=>a.classList.toggle("on",a.dataset.b===k));
-   const bm=document.getElementById("bmore");if(bm)bm.onclick=()=>openModal(`<div class="row sp"><h2 style="margin:0;font-size:20px">More</h2><button class="btn g sm" id="cx">Close</button></div>
-     <div class="mlist">${[["local","Local club cricket","Live club scores · score your own match"],["tournaments","Tournaments","Every J&K BCCI tournament"],["leaders","Leaderboards","Top run-scorers and wicket-takers"],["register","Register your club","Free club page and stats"]].map(([h,t,d])=>`<a href="#${h}" data-close><b>${t}</b><span>${d}</span></a>`).join("")}</div>`,sh=>{sh.querySelector("#cx").onclick=closeModal;sh.querySelectorAll("[data-close]").forEach(a=>a.onclick=()=>closeModal());});}
+   const bm=document.getElementById("bmore");if(bm)bm.onclick=()=>{openModal(`<div class="row sp"><h2 style="margin:0;font-size:20px">More</h2><button class="btn g sm" id="cx">Close</button></div>
+     <div class="mlist">${[["local","Local club cricket","Live club scores · score your own match"],["tournaments","Tournaments","Every J&K BCCI tournament"],["leaders","Leaderboards","Top run-scorers and wicket-takers"],["register","Register your club","Free club page and stats"]].map(([h,t,d])=>`<a href="#${h}" data-close><b>${t}</b><span>${d}</span></a>`).join("")}</div>`,sh=>{sh.querySelector("#cx").onclick=closeModal;sh.querySelectorAll("[data-close]").forEach(a=>a.onclick=()=>closeModal());});document.getElementById("modal").classList.add("bottom");}}
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(r.v==="newmatch"||r.v==="register"||r.v==="playerid"?"local":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v==="team"?(S.teams[r.id]&&S.teams[r.id].local?"local":"teams"):r.v==="tour"?"tournaments":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v)));
   const app=$("#app");
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
