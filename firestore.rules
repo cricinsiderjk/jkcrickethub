@@ -2,28 +2,60 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function isAdmin() { return signedIn() && request.auth.token.email == 'YOUR_EMAIL@gmail.com'; }
-    match /meta/{doc} { allow read: if isAdmin(); }
+    function uid() { return request.auth.uid; }
+    function isAdmin() { return signedIn() && request.auth.token.email == 'YOUR_EMAIL@gmail.com' && request.auth.token.email_verified == true; }
+    function str(v, max) { return v is string && v.size() <= max; }
+    function optStr(d, k, max) { return !(k in d) || str(d[k], max); }
+
+    // ---- clubs / teams ----
+    function validTeam(d) {
+      return d.keys().size() <= 25
+        && str(d.name, 60) && d.name.size() > 0
+        && optStr(d, 'short', 6) && optStr(d, 'district', 40) && optStr(d, 'captain', 50)
+        && optStr(d, 'insta', 60) && optStr(d, 'createdBy', 128)
+        && d.players is list && d.players.size() <= 80;
+    }
+    // anyone may ADD players (e.g. while setting up a match) but never change or remove existing ones
+    function addPlayersOnly() {
+      let o = resource.data; let n = request.resource.data;
+      let op = o.get('players', []);
+      return n.diff(o).affectedKeys().hasOnly(['players', 'local'])
+        && n.players.size() >= op.size()
+        && n.players[0:op.size()] == op;
+    }
+    function isOwner() { return resource.data.get('createdBy', '') == uid() && request.resource.data.get('createdBy', '') == uid(); }
+    // an unregistered team (e.g. made while scoring) can be registered ("claimed") once by whoever registers it
+    function claim() {
+      return resource.data.get('registered', false) != true
+        && request.resource.data.registered == true && request.resource.data.createdBy == uid();
+    }
     match /localTeams/{id} {
       allow read: if true;
-      allow create, update: if signedIn();
+      allow create: if signedIn() && validTeam(request.resource.data) && request.resource.data.createdBy == uid();
+      allow update: if isAdmin() || (signedIn() && validTeam(request.resource.data) && (isOwner() || addPlayersOnly() || claim()));
       allow delete: if isAdmin();
+    }
+
+    // ---- matches ----
+    function validMatch(d) {
+      return d.keys().size() <= 60
+        && optStr(d, 'venue', 100) && optStr(d, 'note', 300) && optStr(d, 'result', 200) && optStr(d, 'tournament', 100)
+        && (!('innings' in d) || (d.innings is list && d.innings.size() <= 6));
     }
     match /localMatches/{id} {
       allow read: if true;
-      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
-      allow update, delete: if isAdmin() || (signedIn() && resource.data.createdBy == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.createdBy == uid() && validMatch(request.resource.data);
+      allow update: if isAdmin() || (signedIn() && resource.data.createdBy == uid()
+                                     && request.resource.data.createdBy == uid() && validMatch(request.resource.data));
+      allow delete: if isAdmin() || (signedIn() && resource.data.createdBy == uid());
     }
+
+    // ---- noticeboard (hidden on the site): no new posts ----
     match /localPosts/{id} {
-      allow read: if resource.data.status == 'approved' || isAdmin()
-                  || (signedIn() && resource.data.createdBy == request.auth.uid);
-      allow create: if signedIn()
-                    && request.resource.data.createdBy == request.auth.uid
-                    && request.resource.data.status == 'pending'
-                    && request.resource.data.title is string && request.resource.data.title.size() <= 80
-                    && request.resource.data.details is string && request.resource.data.details.size() <= 500;
-      allow update: if isAdmin();
-      allow delete: if isAdmin() || (signedIn() && resource.data.createdBy == request.auth.uid);
+      allow read: if isAdmin() || resource.data.status == 'approved';
+      allow create: if false;
+      allow update, delete: if isAdmin();
     }
+    match /meta/{doc} { allow read: if isAdmin(); }
   }
 }

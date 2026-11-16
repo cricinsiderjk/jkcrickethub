@@ -1171,7 +1171,7 @@ function vQuick(app){
     for(const i of [0,1]){
       const ex=find(names[i]);const t=ex?{...S.teams[ex.id],players:[...(S.teams[ex.id].players||[])]}:{id:uid(),name:names[i],short:names[i].replace(/[^A-Za-z ]/g,"").split(" ").filter(Boolean).map(w=>w[0]).join("").slice(0,4).toUpperCase()||names[i].slice(0,3).toUpperCase(),district:dist,players:[],local:true,createdBy:AUTH.uid,created:new Date().toISOString()};
       if(!t.district&&dist)t.district=dist;
-      const pick=[];for(const q of lists[i]){let p=q.id?t.players.find(x=>x.id===q.id):t.players.find(x=>x.name.toLowerCase()===q.name.toLowerCase());if(!p){p={id:q.id||uid(),name:q.name,role:q.role};t.players.push(p);}else p.role=q.role;if(!pick.includes(p.id))pick.push(p.id);}
+      const pick=[];for(const q of lists[i]){let p=q.id?t.players.find(x=>x.id===q.id):t.players.find(x=>x.name.toLowerCase()===q.name.toLowerCase());if(!p){p={id:q.id||uid(),name:q.name,role:q.role};t.players.push(p);}else if(!t.createdBy||t.createdBy===AUTH.uid||AUTH.isAdmin)p.role=q.role;if(!pick.includes(p.id))pick.push(p.id);}
       t.local=true;S.teams[t.id]=t;persist("teams/"+t.id,t);ids.push(t.id);xi.push(pick);}
     rebuildPlayers();
     const tw=ids[+f.tw.value],td=f.td.value;const bat=td==="bat"?tw:(tw===ids[0]?ids[1]:ids[0]);const bowl=bat===ids[0]?ids[1]:ids[0];
