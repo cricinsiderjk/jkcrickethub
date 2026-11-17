@@ -763,7 +763,7 @@ function vHome(app){
   <div class="tabs" id="hcat" style="margin-bottom:14px"><button data-c="" class="${hc?"":"on"}">All</button>${TCATS.map(c=>`<button data-c="${esc(c.k)}" class="${hc===c.k?"on":""}">${esc(c.k.replace(" Men",""))}</button>`).join("")}</div>
   ${live.length?`<h2>Live now</h2><div class="grid" style="margin-bottom:18px">${live.map(matchCard).join("")}</div>`:""}
   ${up.length?`<h2>Upcoming</h2><div class="grid" style="margin-bottom:18px">${up.slice(0,S.hUp?999:(innerWidth<560?3:4)).map(matchCard).join("")}</div>${!S.hUp&&up.length>(innerWidth<560?3:4)?`<button class="btn g more" id="hup" style="margin:-6px 0 18px">Show all ${up.length} upcoming</button>`:""}`:""}
-  <h2>${live.length?"Recent results":"Matches"}</h2>
+  <h2>Results</h2>
   ${done.length?`<div class="grid">${done.slice(0,S.hAll?999:6).map(matchCard).join("")}</div>${done.length>6&&!S.hAll?`<button class="btn g more" id="hmore">Show all ${done.length} results</button>`:""}`:`<div class="card empty">${all.length?"No completed matches yet.":S.canEdit?"No matches yet. Create teams, then start your first match.":"No matches yet. Check back soon."}</div>`}`;
   bindGo(app);bindP(app);
   app.querySelectorAll("#hcat [data-c]").forEach(b=>b.onclick=()=>{S.hCat=b.dataset.c;S.hAll=0;S.hUp=0;vHome(app);});
