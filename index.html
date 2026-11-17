@@ -756,8 +756,6 @@ function vHome(app){
   const all=Object.values(S.matches).filter(m=>!m.local&&(!hc||catOf(m.tournament)===hc)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created||"").localeCompare(a.created||""));
   const live=all.filter(m=>m.status==="live"||inPlay(m)),done=all.filter(m=>m.status==="done");
   const up=all.filter(m=>m.status==="upcoming"&&!inPlay(m)).sort((a,b)=>(a.start||a.date||"").localeCompare(b.start||b.date||""));
-  const lc=hc||"Senior Men";const st=Object.values(stats({t:"cat:"+lc,s:CUR_SEASON}));
-  const topR=st.filter(p=>p.r>0).sort((a,b)=>b.r-a.r).slice(0,5),topW=st.filter(p=>p.w>0).sort((a,b)=>b.w-a.w||a.br-b.br).slice(0,5);
   const ready=Object.values(S.teams).filter(t=>(t.players||[]).length>=2).length>=2;
   app.innerHTML=`
   <div class="sec dom">J&amp;K in BCCI domestic cricket</div>
@@ -765,10 +763,6 @@ function vHome(app){
   <div class="tabs" id="hcat" style="margin-bottom:14px"><button data-c="" class="${hc?"":"on"}">All</button>${TCATS.map(c=>`<button data-c="${esc(c.k)}" class="${hc===c.k?"on":""}">${esc(c.k.replace(" Men",""))}</button>`).join("")}</div>
   ${live.length?`<h2>Live now</h2><div class="grid" style="margin-bottom:18px">${live.map(matchCard).join("")}</div>`:""}
   ${up.length?`<h2>Upcoming</h2><div class="grid" style="margin-bottom:18px">${up.slice(0,S.hUp?999:(innerWidth<560?3:4)).map(matchCard).join("")}</div>${!S.hUp&&up.length>(innerWidth<560?3:4)?`<button class="btn g more" id="hup" style="margin:-6px 0 18px">Show all ${up.length} upcoming</button>`:""}`:""}
-  ${lc==="Senior Men"?`  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:18px">
-   <div class="card" style="margin:0"><h3>🏆 Most runs <span class="small muted">· ${esc(lc)} ${CUR_SEASON}</span></h3>${topR.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.r}</span></div>`).join("")||'<div class="muted small">No runs yet</div>'}</div>
-   <div class="card" style="margin:0"><h3>🎯 Most wickets <span class="small muted">· ${esc(lc)} ${CUR_SEASON}</span></h3>${topW.map((p,i)=>`<div class="lb"><span><span class="rk">${i+1}</span><span class="n link" data-p="${esc(p.id)}">${esc(pn(p.id))}</span></span><span class="v">${p.w}</span></div>`).join("")||'<div class="muted small">No wickets yet</div>'}</div>
-  </div>`:""}
   <h2>${live.length?"Recent results":"Matches"}</h2>
   ${done.length?`<div class="grid">${done.slice(0,S.hAll?999:6).map(matchCard).join("")}</div>${done.length>6&&!S.hAll?`<button class="btn g more" id="hmore">Show all ${done.length} results</button>`:""}`:`<div class="card empty">${all.length?"No completed matches yet.":S.canEdit?"No matches yet. Create teams, then start your first match.":"No matches yet. Check back soon."}</div>`}`;
   bindGo(app);bindP(app);
