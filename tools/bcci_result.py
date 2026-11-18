@@ -33,7 +33,10 @@ def main():
         req = urllib.request.Request(f"https://stats.bcci.tv/match/{m['bcci']}/scorecard", headers={"User-Agent": "Mozilla/5.0", "Referer": "https://www.bcci.tv/"})
         import time
         for t in range(6):  # BCCI's server sometimes drops connections: retry
-            try: j = json.load(urllib.request.urlopen(req, timeout=30)); break
+            try:
+                raw = urllib.request.urlopen(req, timeout=30).read()
+                if raw[:2] == b"\x1f\x8b": raw = __import__("gzip").decompress(raw)  # BCCI sometimes sends gzip
+                j = json.loads(raw); break
             except Exception as e:
                 if t == 5: print("BCCI unreachable after 6 tries:", e); sys.exit(1)
                 time.sleep(10 * (t + 1))
