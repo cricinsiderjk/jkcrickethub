@@ -36,6 +36,8 @@ def main():
     todo = {}
     for mid, m in d["matches"].items():
         if not m.get("bcci") or not m.get("date") or season_of(m["date"]) != cur: continue
+        # only tournaments with a J&K match from 3 days ago to 14 days ahead (keeps requests to BCCI low)
+        if not (str(dt.date.today() - dt.timedelta(days=3)) <= m["date"] <= str(dt.date.today() + dt.timedelta(days=14))): continue
         jk = next((t for t in (m["teamA"], m["teamB"]) if t.startswith("t-jk")), None)
         if not jk or (m["tournament"], cur, jk) in have: continue
         todo.setdefault((m["tournament"], jk), m)

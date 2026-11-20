@@ -20,10 +20,15 @@ for mid in todo:
     print(mid, r.returncode, (r.stdout or r.stderr).strip()[-300:])
     if r.returncode == 0: done.append(mid)
 # fallback squads from BCCI for tournaments with no squad on the site yet (official JKCA squads always win)
-sq = subprocess.run([sys.executable, os.path.join(here, "bcci_squad.py")], capture_output=True, text=True, cwd=os.path.join(here, ".."))
-print("squads:", (sq.stdout or sq.stderr).strip()[-400:])
-try: sq_added = json.loads(sq.stdout.strip().splitlines()[-1]).get("added", [])
-except Exception: sq_added = []
+# squads change rarely: check only once every 3 hours (the first run after 00:00, 03:00, 06:00 ... UTC), or when run by hand
+sq_added = []
+if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch" or (now.hour % 3 == 0 and now.minute < 15) or "--squads" in sys.argv:
+    sq = subprocess.run([sys.executable, os.path.join(here, "bcci_squad.py")], capture_output=True, text=True, cwd=os.path.join(here, ".."))
+    print("squads:", (sq.stdout or sq.stderr).strip()[-400:])
+    try: sq_added = json.loads(sq.stdout.strip().splitlines()[-1]).get("added", [])
+    except Exception: sq_added = []
+else:
+    print("squads: skipped (checked every 3 hours)")
 if done or sq_added:
     d = json.load(open(f))
     d["updated"] = (now + dt.timedelta(hours=5, minutes=30)).date().isoformat()
