@@ -16,7 +16,7 @@ ALIASES = {  # spellings BCCI uses -> existing player ids
     "sr kumar": "p-sunil-kumar", "lone nasir": "p-lone-nasir-muzaffar", "umar nazir mir": "p-umar-nazir",
     "yudhvir singh charak": "p-yudhvir-singh", "yawar hasan": "p-yawer-hassan", "kanhaiya wadhwan": "p-kanhaiya-wadhawan",
 }
-ROLE = {"batsman": "Batter", "batter": "Batter", "bowler": "Bowler", "allrounder": "All-rounder", "all-rounder": "All-rounder", "wicketkeeper": "Wicket-keeper"}
+ROLE = {"batsman": "Batter", "batter": "Batter", "bowler": "Bowler", "allrounder": "All-rounder", "all-rounder": "All-rounder", "wicketkeeper": "Wicket-keeper", "wicket-keeper": "Wicket-keeper", "wk": "Wicket-keeper", "keeper": "Wicket-keeper", "batsmen": "Batter", "allround": "All-rounder"}
 
 def pid(n): return "p-" + re.sub(r"[^a-z]+", "-", n.lower()).strip("-")
 
@@ -68,7 +68,25 @@ def main():
             role = ROLE.get((src.get("player_role") or "").lower(), "Wicket-keeper" if src.get("is_keeper") == "1" else "Player")
             team["players"].append({"id": i, "name": allids[i]["name"] if i in allids else n, "role": allids[i].get("role", role) if i in allids else role})
             have.add(i); added.append(n)
-        byname[k] = i; return i
+        byname[k] = i; fill_role(i, bp); return i
+    filled = []
+    bowled = {b.get("player_id") for inn in j.get("innings", []) for b in inn.get("bowling", []) if int(b.get("balls") or 0) > 0}
+    def fill_role(i, bp):  # set a role from BCCI only where we don't know it yet; never overwrite a known role
+        src = next((p for p in bt_team["player"] if p["player_id"] == bp), None)
+        if not src: return
+        tag = (src.get("player_role") or "").lower().replace(" ", "")
+        r = "Wicket-keeper" if ("keeper" in tag or src.get("is_keeper") == "1") else ROLE.get(tag)
+        if r == "Batter" and bp in bowled: r = "All-rounder"  # BCCI has no all-rounder tag: a batter who also bowls
+        if not r: return
+        for t in T.values():
+            for p in t.get("players", []):
+                if p["id"] == i and p.get("role", "Player") in ("Player", "", None): p["role"] = r; filled.append(f"{p['name']}: {r}")
+    if "--roles-only" in a:  # only fill unknown roles from this match; don't touch the match itself
+        for p in bt_team["player"]:
+            n = names[p["player_id"]]; k = n.lower(); i = byname.get(k) or ALIASES.get(k) or near(n)
+            if i: fill_role(i, p["player_id"])
+        if not dry and filled: json.dump(d, open("data.json", "w"), ensure_ascii=False, separators=(",", ":"))
+        print(json.dumps({"match": mid, "roles_filled": filled}, ensure_ascii=False)); sys.exit(0)
     xi = [gid(p["player_id"]) for p in bt_team["player"]]
     inns = []
     for n_i, i in enumerate(j["innings"]):
