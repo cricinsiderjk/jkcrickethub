@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CricInsider.jk – J&amp;K cricket scores &amp; stats</title>
@@ -206,6 +208,9 @@ img,svg,video{max-width:100%}
 }
 @media (max-width:640px){#bnav span{font-size:12px}}
 
+
+.skel{display:grid;gap:12px;padding-top:4px}.skel i{display:block;height:64px;border-radius:16px;background:linear-gradient(90deg,rgba(127,127,127,.12) 25%,rgba(127,127,127,.22) 50%,rgba(127,127,127,.12) 75%);background-size:200% 100%;animation:skel 1.2s ease-in-out infinite}
+@keyframes skel{from{background-position:200% 0}to{background-position:-200% 0}}
 </style>
 </head>
 <body>
@@ -223,7 +228,7 @@ img,svg,video{max-width:100%}
   </nav>
 </div></header>
 <nav id="bnav" aria-label="Main"><a href="#home" data-b="home"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9v10.5h4.5V15h3v4.5H18V9"/></svg><span>Home</span></a><a href="#matches" data-b="matches"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg><span>Matches</span></a><a href="#squads" data-b="squads"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="3"/><path d="M3.5 19.5c.4-3 2.7-5 5.5-5s5.1 2 5.5 5"/><circle cx="16.5" cy="9.5" r="2.4"/><path d="M15.8 14.6c2.5-.2 4.4 1.6 4.7 4.4"/></svg><span>Squads</span></a><a href="#stats" data-b="stats"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 19.5v-6M12 19.5v-13M18 19.5v-9"/><path d="M4 19.5h16"/></svg><span>Stats</span></a><button type="button" data-b="more" id="bmore"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5h14M5 12h14M5 16.5h14"/></svg><span>More</span></button></nav>
-<main id="app"><div class="empty">Loading…</div></main>
+<main id="app"><div class="skel"><i style="height:150px"></i><i></i><i></i><i style="width:60%"></i></div></main>
 <footer>CricInsider.jk · made for J&amp;K cricket fans by <a href="https://instagram.com/cricinsiderjk" target="_blank" rel="noopener">@cricinsiderjk</a> · free &amp; ad-free · stats updated after every match</footer>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 <div id="toast"></div>
@@ -242,8 +247,12 @@ img,svg,video{max-width:100%}
   const FB=!!(CFG&&CFG.apiKey&&window.firebase);
   let fs=null,auth=null;
   if(FB){try{firebase.initializeApp(CFG);fs=firebase.firestore();auth=firebase.auth();}catch(e){console.error(e);}}
-  let cache=null;
-  const load=()=>cache||(cache=fetch("data.json?v="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}));
+  /* Instant start: show the last saved copy of data.json straight away, fetch the fresh one in the background. */
+  let saved=null;try{saved=JSON.parse(localStorage.getItem("ci-data")||"null");}catch(e){saved=null;}
+  window.CI_DATA=saved;const subs=[];window.CI_SUB=f=>subs.push(f);
+  const fresh=fetch("data.json?v="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
+    .then(t=>{const d=JSON.parse(t);const same=saved&&t===localStorage.getItem("ci-data");try{localStorage.setItem("ci-data",t);}catch(e){}
+      window.CI_DATA=d;if(!same)subs.slice().forEach(f=>{try{f(d);}catch(e){console.error(e);}});return d;});
   const LOCAL={teams:"localTeams",matches:"localMatches"};
   const localIds={teams:new Set(),matches:new Set()};
   const mk=(id,v)=>({id,exists:true,data:()=>v,metadata:{fromCache:false,hasPendingWrites:false}});
@@ -252,7 +261,9 @@ img,svg,video{max-width:100%}
       let base=null,loc={};
       const emit=()=>{if(base===null)return;const docs=Object.entries(base[name]||{}).map(([id,v])=>mk(id,v));
         for(const [id,v] of Object.entries(loc))docs.push(mk(id,v));next({docs,metadata:{fromCache:false,hasPendingWrites:false}});};
-      load().then(d=>{base=d;emit();}).catch(e=>err&&err({code:"unavailable",message:String(e)}));
+      if(saved)Promise.resolve().then(()=>{if(base===null){base=saved;emit();}});
+      subs.push(d=>{base=d;emit();});
+      fresh.then(d=>{if(base===null){base=d;emit();}}).catch(e=>{if(!saved)err&&err({code:"unavailable",message:String(e)});});
       if(fs&&LOCAL[name]){fs.collection(LOCAL[name]).onSnapshot(q=>{loc={};localIds[name].clear();
         q.forEach(d=>{const v=Object.assign({},d.data(),{local:true});loc[d.id]=v;localIds[name].add(d.id);});emit();},e=>console.warn("local data",e));}
       return()=>{};}}),
@@ -620,7 +631,7 @@ function render(){{const ib=document.getElementById("instb");if(ib){ib.hidden=!(
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(r.v==="newmatch"||r.v==="register"||r.v==="playerid"?"local":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v==="team"?(S.teams[r.id]&&S.teams[r.id].local?"local":"teams"):r.v==="tour"?"tournaments":r.v==="match"?(S.matches[r.id]&&S.matches[r.id].local?"local":"matches"):r.v)));
   const app=$("#app");
   if(S.err){app.innerHTML=`<div class="card empty">${esc(S.err)}</div>`;return;}
-  if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="card empty">Loading…</div>`;return;}
+  if(!S.loaded.teams||!S.loaded.matches){app.innerHTML=`<div class="skel"><i style="height:150px"></i><i></i><i></i><i style="width:60%"></i></div>`;return;}
   const hk=location.hash;if(S._lh!==hk){S._lh=hk;app.classList.remove("fade");void app.offsetWidth;app.classList.add("fade");if(S._booted)window.scrollTo(0,0);S._booted=1;}
   const V={home:vStart,matches:vHome,leaders:vLeaders,stats:vPlayers,teams:vSquads,squads:vSquads,team:vTeam,match:vMatch,newmatch:vQuick,register:vRegister,playerid:()=>{location.hash="local";},tournaments:vTours,tour:vTour,local:vLocal,community:()=>{location.hash="local";}}[r.v];
   V(app,r);
@@ -776,7 +787,8 @@ function bindP(root){root.querySelectorAll("[data-p]").forEach(e=>e.onclick=ev=>
 
 function loadSq(cb){if(S.sqData)return cb();if(S.sqLoading){S.sqWait.push(cb);return;}S.sqLoading=1;S.sqWait=[cb];
   const done=d=>{S.sqData=d;S.sqLoading=0;S.sqWait.splice(0).forEach(f=>f());};
-  fetch("data.json",{cache:"no-cache"}).then(r=>r.json()).then(d=>done(d.squads||[])).catch(()=>done([]));}
+  if(window.CI_DATA)return done(window.CI_DATA.squads||[]);
+  let fired=0;const once=d=>{if(fired++)return;done((d&&d.squads)||[]);};window.CI_SUB&&CI_SUB(once);setTimeout(()=>once(window.CI_DATA),12000);}
 const sqTeam=q=>{if(q.team)return q.team;const c=q.category||"",n=q.tournament||"";if(c==="Senior Men")return"t-jk";if(c==="Under-23 Men")return"t-jk-u23";if(c==="Under-19 Men")return"t-jk-u19";if(c==="Under-16 Men")return"t-jk-u16";
   if(/U23/.test(n))return"t-jkw-u23";if(/U19/.test(n))return"t-jkw-u19";return"t-jkw";};
 const isJK=t=>t&&!t.local&&/^t-jkw?(-|$)/.test(t.id);
@@ -1697,6 +1709,7 @@ function openPlayer(id){
    </tbody></table></div>`,el=>{el.querySelector("#cx").onclick=closeModal;el.querySelectorAll("[data-go]").forEach(a=>a.onclick=()=>{closeModal();location.hash=a.dataset.go;});});
 }
 
+window.CI_SUB&&CI_SUB(d=>{if(S.sqData){S.sqData=d.squads||[];}});
 function softRender(){
   const a=document.activeElement;
   if(route().v==="newmatch"&&S.loaded.teams&&S.loaded.matches&&$("#mf"))return;
