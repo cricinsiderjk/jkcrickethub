@@ -831,7 +831,7 @@ function vSquads(app){
   let cat=S.sqCat;if(!SQ_CATS.some(c=>c.k===cat))cat=(SQ_CATS.find(c=>c.t.some(has))||SQ_CATS[0]).k;
   const C=SQ_CATS.find(c=>c.k===cat);const tours=[...C.t.filter(has),...C.t.filter(t=>!has(t)&&se===CUR_SEASON&&!["Irani Cup"].includes(t))];
   let tour=S.sqTour;if(!C.t.includes(tour)||!has(tour))tour=C.t.filter(has).sort((x,y)=>{const l=t=>list.filter(q=>q.tournament===t).map(q=>q.announced||"").sort().pop()||"";return l(y).localeCompare(l(x));})[0]||"";
-  const vers=list.filter(q=>q.tournament===tour).sort((a,b)=>(b.announced||"").localeCompare(a.announced||""));
+  const vers=list.filter(q=>q.tournament===tour).sort((a,b)=>((a.kind==="bcci")-(b.kind==="bcci"))||(b.announced||"").localeCompare(a.announced||""));
   const q=vers.find(v=>v.id===S.sqVer)||vers[0];
   const nm=id=>{const p=S.players[id];return p?p.name:id.replace(/^p-/,"").replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase());};
   const ini=n=>n.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();

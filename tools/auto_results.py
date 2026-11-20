@@ -19,8 +19,14 @@ for mid in todo:
     r = subprocess.run([sys.executable, os.path.join(here, "bcci_result.py"), mid], capture_output=True, text=True)
     print(mid, r.returncode, (r.stdout or r.stderr).strip()[-300:])
     if r.returncode == 0: done.append(mid)
-if done:
+# fallback squads from BCCI for tournaments with no squad on the site yet (official JKCA squads always win)
+sq = subprocess.run([sys.executable, os.path.join(here, "bcci_squad.py")], capture_output=True, text=True, cwd=os.path.join(here, ".."))
+print("squads:", (sq.stdout or sq.stderr).strip()[-400:])
+try: sq_added = json.loads(sq.stdout.strip().splitlines()[-1]).get("added", [])
+except Exception: sq_added = []
+if done or sq_added:
     d = json.load(open(f))
     d["updated"] = (now + dt.timedelta(hours=5, minutes=30)).date().isoformat()
     json.dump(d, open(f, "w"), ensure_ascii=False, separators=(",", ":"))
-    open(os.environ.get("GITHUB_OUTPUT", os.devnull), "a").write("msg=Stats (auto): " + ", ".join(d["matches"][m].get("result", m) for m in done) + "\n")
+    parts = [d["matches"][m].get("result", m) for m in done] + ["squad " + x.split(":")[0] for x in sq_added]
+    open(os.environ.get("GITHUB_OUTPUT", os.devnull), "a").write("msg=Stats (auto): " + ", ".join(parts) + "\n")
