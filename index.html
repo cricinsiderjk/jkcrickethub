@@ -211,6 +211,26 @@ img,svg,video{max-width:100%}
 
 .skel{display:grid;gap:12px;padding-top:4px}.skel i{display:block;height:64px;border-radius:16px;background:linear-gradient(90deg,rgba(127,127,127,.12) 25%,rgba(127,127,127,.22) 50%,rgba(127,127,127,.12) 75%);background-size:200% 100%;animation:skel 1.2s ease-in-out infinite}
 @keyframes skel{from{background-position:200% 0}to{background-position:-200% 0}}
+
+/* Squads team sheet */
+.sqcat{display:flex;gap:6px;background:rgba(127,127,127,.12);padding:4px;border-radius:14px;margin-bottom:8px}
+.sqcat button{flex:1;border:0;background:none;padding:10px 4px;border-radius:10px;font:inherit;font-weight:700;font-size:14px;color:inherit;opacity:.7;min-height:42px;cursor:pointer}
+.sqcat button.on{background:var(--card,#fff);opacity:1;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.sqdr{display:flex;gap:8px;overflow-x:auto;padding:10px;margin-bottom:12px;border-radius:14px;background:var(--card,#fff);border:1px solid rgba(127,127,127,.18);animation:sqdrop .22s ease-out;scrollbar-width:none}
+.sqdr::-webkit-scrollbar{display:none}
+.sqdr button{flex:none;border:1px solid rgba(127,127,127,.3);background:none;color:inherit;font:inherit;font-weight:600;font-size:14px;padding:8px 14px;border-radius:99px;min-height:40px;cursor:pointer}
+.sqdr button.on{background:#16201c;color:#fff;border-color:#16201c}
+.sqdr button:disabled{opacity:.45;cursor:default}.sqdr small{font-size:11px;font-weight:600;margin-left:3px}
+@keyframes sqdrop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.sqh{color:#fff;border-radius:18px;padding:18px;margin-bottom:12px}
+.sqk{font-size:12px;font-weight:700;letter-spacing:.09em;opacity:.85}.sqt{font-size:21px;font-weight:800;margin:4px 0 2px;line-height:1.2}.sqm{font-size:14px;opacity:.9}
+.sqc{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.sqc span{background:rgba(255,255,255,.18);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700}
+.sqv{border:1px solid rgba(127,127,127,.3);background:none;color:inherit;font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:99px;min-height:38px;cursor:pointer}.sqv.on{background:#16201c;color:#fff;border-color:#16201c}
+.sqr{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(127,127,127,.15);cursor:pointer}.sqr:last-child{border-bottom:0}
+.sqi{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none}
+.sqn{flex:1;min-width:0}.sqn b{font-size:15px}.sqs{text-align:right;flex:none}.sqs b{font-size:17px}
+.sqb{display:inline-block;font-size:11px;font-weight:800;padding:2px 6px;border-radius:6px;margin-left:6px;vertical-align:2px}.sqb.c{background:#fdf0d2;color:#8a5a00}.sqb.wk{background:#e3f3ec;color:#0e5c48}
+@media (prefers-color-scheme:dark){.sqdr button.on,.sqv.on{background:#f2f2f2;color:#111;border-color:#f2f2f2}.sqcat button.on{background:#2a2f2d}}
 </style>
 </head>
 <body>
@@ -802,30 +822,47 @@ function teamSeasons(){const z=new Set([CUR_SEASON]);for(const q of (S.sqData||[
 
 /* ----- JKCA squads by category ----- */
 const SQ_CATS=TCATS;
+const T_SH={"Ranji Trophy":"Ranji","Syed Mushtaq Ali Trophy":"SMAT","Vijay Hazare Trophy":"Vijay Hazare","Irani Cup":"Irani Cup","CK Nayudu Trophy":"CK Nayudu","Men's U23 State A Trophy":"U23 State A","Cooch Behar Trophy":"Cooch Behar","Vinoo Mankad Trophy":"Vinoo Mankad","Vijay Merchant Trophy":"Vijay Merchant","Senior Women's T20 Trophy":"Senior T20","Senior Women's One Day Trophy":"Senior One Day","Women's U23 T20 Trophy":"U-23 T20","Women's U23 One Day Trophy":"U-23 One Day","Women's U19 T20 Trophy":"U-19 T20","Women's U19 One Day Trophy":"U-19 One Day"};
 function vSquads(app){
   if(!S.sqData){app.innerHTML=`<div class="card empty">Loading squads…</div>`;loadSq(()=>{if(route().v==="squads")vSquads(app);});return;}
   const all=S.sqData;const seasons=[...new Set([CUR_SEASON,...all.map(q=>q.season)])].sort().reverse();
-  const se=S.sqSeason||CUR_SEASON,cat=S.sqCat||"";
-  const list=all.filter(q=>q.season===se);
+  const se=S.sqSeason||CUR_SEASON;const list=all.filter(q=>q.season===se);
+  const has=t=>list.some(q=>q.tournament===t);
+  let cat=S.sqCat;if(!SQ_CATS.some(c=>c.k===cat))cat=(SQ_CATS.find(c=>c.t.some(has))||SQ_CATS[0]).k;
+  const C=SQ_CATS.find(c=>c.k===cat);const tours=[...C.t.filter(has),...C.t.filter(t=>!has(t)&&se===CUR_SEASON&&!["Irani Cup"].includes(t))];
+  let tour=S.sqTour;if(!C.t.includes(tour)||!has(tour))tour=C.t.filter(has).sort((x,y)=>{const l=t=>list.filter(q=>q.tournament===t).map(q=>q.announced||"").sort().pop()||"";return l(y).localeCompare(l(x));})[0]||"";
+  const vers=list.filter(q=>q.tournament===tour).sort((a,b)=>(b.announced||"").localeCompare(a.announced||""));
+  const q=vers.find(v=>v.id===S.sqVer)||vers[0];
   const nm=id=>{const p=S.players[id];return p?p.name:id.replace(/^p-/,"").replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase());};
-  const card=q=>{const mark=id=>[q.captain===id?"C":"",q.vc===id?"VC":"",(q.wk||[]).includes(id)?"WK":""].filter(Boolean).join(", ");
-    return `<div class="card" style="margin:0 0 12px"><div class="row sp"><b>${esc(q.tournament)}</b><span class="tag">${esc(q.label||"Squad")}</span></div>
-    <div class="small muted" style="margin:4px 0 10px">${q.players.length} players${q.announced?" · announced "+esc(fdate(q.announced)):""}</div>
-    <div class="chips">${q.players.map(id=>{const mk=mark(id);return `<span class="tag link" data-p="${esc(id)}" style="text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;padding:6px 10px;${mk?"background:rgba(242,169,0,.18);color:inherit":""}">${esc(nm(id))}${mk?` <span class="muted">(${mk})</span>`:""}</span>`;}).join("")}</div>
-    ${q.note?`<p class="small muted" style="margin:10px 0 0">${esc(q.note)}</p>`:""}
-    ${q.src?`<p class="small muted" style="margin:6px 0 0">Source: <a href="${esc(q.src)}" target="_blank" rel="noopener">${esc(q.srcName||"link")}</a></p>`:""}</div>`;};
-  const cats=SQ_CATS.filter(c=>!cat||c.k===cat);
-  const body=cats.map(c=>{const rows=c.t.map(t=>{const qs=list.filter(q=>q.tournament===t).sort((a,b)=>(b.announced||"").localeCompare(a.announced||""));
-      if(qs.length)return qs.map(card).join("");
-      return se===CUR_SEASON&&!["Irani Cup","Duleep Trophy"].includes(t)?`<div class="card" style="margin:0 0 12px;padding:12px 16px"><div class="row sp"><b>${esc(t)}</b><span class="small muted">Not announced yet</span></div></div>`:"";}).join("");
-    return rows?`<h3 style="margin:18px 0 10px">${c.i} ${esc(c.k)}</h3>${rows}`:"";}).join("");
-  app.innerHTML=`<div class="sec dom">BCCI domestic</div><div class="row sp" style="margin-bottom:6px;flex-wrap:wrap;gap:8px"><h2 style="margin:0">J&amp;K squads</h2>
+  const ini=n=>n.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  const clr=CAT_CLR[cat]||"#0e5c48";
+  let sheet="";
+  if(q){
+    const capN=q.captain?nm(q.captain):"";
+    const rows=q.players.map(id=>{
+      const b=(q.captain===id?`<span class="sqb c">C</span>`:"")+(q.vc===id?`<span class="sqb c">VC</span>`:"")+((q.wk||[]).includes(id)?`<span class="sqb wk">WK</span>`:"");
+      return `<div class="sqr" data-p="${esc(id)}"><div class="sqi" style="color:${clr};background:${clr}1a">${esc(ini(nm(id)))}</div>
+        <div class="sqn"><b>${esc(nm(id))}</b>${b}</div><span class="muted" style="font-size:20px">›</span></div>`;}).join("");
+    sheet=`<div class="sqh" style="background:linear-gradient(135deg,${clr},${clr}cc)">
+      <div class="sqk">${esc(C.k.toUpperCase())} · ${esc(se)}</div><div class="sqt">${esc(q.tournament)}</div>
+      <div class="sqm">${q.players.length} players${capN?` · Captain ${esc(capN)}`:""}</div>${q.announced?`<div class="sqm" style="font-size:12.5px;opacity:.75;margin-top:2px">Announced ${esc(fdate(q.announced))}</div>`:""}
+      </div>
+      ${vers.length>1?`<div class="chips" style="margin:0 0 10px">${vers.map(v=>`<button class="sqv ${v===q?"on":""}" data-v="${esc(v.id)}">${esc(v.label||"Squad")}</button>`).join("")}</div>`:""}
+      <div class="card" style="padding:2px 14px">${rows}</div>
+      <p class="small muted" style="margin:10px 2px 0">Tap a player for their profile and stats.</p>
+      ${q.note?`<p class="small muted" style="margin:6px 2px 0">${esc(q.note)}</p>`:""}
+      ${q.src?`<p class="small muted" style="margin:6px 2px 0">Source: <a href="${esc(q.src)}" target="_blank" rel="noopener">${esc(q.srcName||"link")}</a></p>`:""}`;
+  }
+  app.innerHTML=`<div class="sec dom">BCCI domestic</div><div class="row sp" style="margin-bottom:10px;flex-wrap:wrap;gap:8px"><h2 style="margin:0">J&amp;K squads</h2>
    <select id="sqs">${seasons.map(x=>`<option value="${esc(x)}" ${x===se?"selected":""}>${esc(x)}${x===CUR_SEASON?" (current)":""}</option>`).join("")}</select></div>
-   <p class="small muted" style="margin:0 0 12px">Official JKCA squads for BCCI tournaments. New squads are added automatically when JKCA announces them. Tap a player for their stats.</p>
-   <div class="tabs"><button data-c="" class="${cat?"":"on"}">All</button>${SQ_CATS.map(c=>`<button data-c="${esc(c.k)}" class="${cat===c.k?"on":""}">${esc(c.k)}</button>`).join("")}</div>
-   ${body||`<div class="card empty">No squads for this season.</div>`}`;
-  $("#sqs").onchange=e=>{S.sqSeason=e.target.value;vSquads(app);};
-  app.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{S.sqCat=b.dataset.c;vSquads(app);});
+   <div class="sqcat">${SQ_CATS.map(c=>`<button data-c="${esc(c.k)}" class="${c.k===cat?"on":""}">${esc(CAT_SH[c.k]||c.k)}</button>`).join("")}</div>
+   <div class="sqdr">${tours.length?tours.map(t=>has(t)?`<button data-t="${esc(t)}" class="${t===tour?"on":""}">${esc(T_SH[t]||t)}</button>`:`<button disabled title="Not announced yet">${esc(T_SH[t]||t)} <small>soon</small></button>`).join(""):`<span class="small muted">No tournaments</span>`}</div>
+   ${sheet||`<div class="card empty">No ${esc(CAT_SH[cat]||cat)} squad announced for ${esc(se)} yet.</div>`}`;
+  $("#sqs").onchange=e=>{S.sqSeason=e.target.value;S.sqTour="";S.sqVer="";vSquads(app);};
+  app.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{S.sqCat=b.dataset.c;S.sqTour="";S.sqVer="";vSquads(app);});
+  app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{S.sqTour=b.dataset.t;S.sqVer="";vSquads(app);});
+  app.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.sqVer=b.dataset.v;vSquads(app);});
+  const on=app.querySelector(".sqdr .on");if(on&&on.scrollIntoView)on.scrollIntoView({block:"nearest",inline:"center"});
   bindP(app);
 }
 function vTeams(app){
