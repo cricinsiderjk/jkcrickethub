@@ -356,7 +356,8 @@ const TOURS=[
  {n:"Senior Women's T20 Trophy",f:"Women · 20 overs",o:20,i:"👩",d:"Women's national T20"},
  {n:"Women's U23 T20 Trophy",f:"Women U-23 · 20 overs",o:20,i:"👩",d:"Women's U-23 national T20"},
  {n:"Women's U19 T20 Trophy",f:"Women U-19 · 20 overs",o:20,i:"👩",d:"Women's U-19 national T20"},
- {n:"Men's U23 State A Trophy",f:"Under-23 · 20 overs",o:20,i:"🎓",d:"U-23 national T20"},
+ {n:"Men's U23 State A Trophy",f:"Under-23 · 50 overs",o:50,i:"🎓",d:"U-23 national one-day"},
+ {n:"Men's U23 State A T20 Trophy",f:"Under-23 · 20 overs",o:20,i:"🎓",d:"U-23 national T20 (new from 2026-27)"},
  {n:"Women's U23 One Day Trophy",f:"Women U-23 · 50 overs",o:50,i:"👩",d:"Women's U-23 national one-day"},
  {n:"Women's U19 One Day Trophy",f:"Women U-19 · 50 overs",o:50,i:"👩",d:"Women's U-19 national one-day"},
  {n:"JKCA League",f:"Local",o:20,i:"🏔️",d:"J&K Cricket Association local cricket"},
@@ -364,7 +365,7 @@ const TOURS=[
 const jkSq=m=>{const q=m&&m.squad;if(!q)return [];return q["t-jk"]||Object.values(q)[0]||[];};
 const TCATS=[
  {k:"Senior Men",i:"🏆",t:["Ranji Trophy","Syed Mushtaq Ali Trophy","Vijay Hazare Trophy","Irani Cup"]},
- {k:"Under-23 Men",i:"🎓",t:["CK Nayudu Trophy","Men's U23 State A Trophy"]},
+ {k:"Under-23 Men",i:"🎓",t:["CK Nayudu Trophy","Men's U23 State A Trophy","Men's U23 State A T20 Trophy"]},
  {k:"Under-19 Men",i:"🌱",t:["Cooch Behar Trophy","Vinoo Mankad Trophy"]},
  {k:"Under-16 Men",i:"🧒",t:["Vijay Merchant Trophy"]},
  {k:"Women",i:"👩",t:["Senior Women's T20 Trophy","Senior Women's One Day Trophy","Women's U23 T20 Trophy","Women's U23 One Day Trophy","Women's U19 T20 Trophy","Women's U19 One Day Trophy"]},
@@ -822,7 +823,7 @@ function teamSeasons(){const z=new Set([CUR_SEASON]);for(const q of (S.sqData||[
 
 /* ----- JKCA squads by category ----- */
 const SQ_CATS=TCATS;
-const T_SH={"Ranji Trophy":"Ranji","Syed Mushtaq Ali Trophy":"SMAT","Vijay Hazare Trophy":"Vijay Hazare","Irani Cup":"Irani Cup","CK Nayudu Trophy":"CK Nayudu","Men's U23 State A Trophy":"U23 State A","Cooch Behar Trophy":"Cooch Behar","Vinoo Mankad Trophy":"Vinoo Mankad","Vijay Merchant Trophy":"Vijay Merchant","Senior Women's T20 Trophy":"Senior T20","Senior Women's One Day Trophy":"Senior One Day","Women's U23 T20 Trophy":"U-23 T20","Women's U23 One Day Trophy":"U-23 One Day","Women's U19 T20 Trophy":"U-19 T20","Women's U19 One Day Trophy":"U-19 One Day"};
+const T_SH={"Ranji Trophy":"Ranji","Syed Mushtaq Ali Trophy":"SMAT","Vijay Hazare Trophy":"Vijay Hazare","Irani Cup":"Irani Cup","CK Nayudu Trophy":"CK Nayudu","Men's U23 State A Trophy":"U23 State A","Men's U23 State A T20 Trophy":"State A T20","Cooch Behar Trophy":"Cooch Behar","Vinoo Mankad Trophy":"Vinoo Mankad","Vijay Merchant Trophy":"Vijay Merchant","Senior Women's T20 Trophy":"Senior T20","Senior Women's One Day Trophy":"Senior One Day","Women's U23 T20 Trophy":"U-23 T20","Women's U23 One Day Trophy":"U-23 One Day","Women's U19 T20 Trophy":"U-19 T20","Women's U19 One Day Trophy":"U-19 One Day"};
 function vSquads(app){
   if(!S.sqData){app.innerHTML=`<div class="card empty">Loading squads…</div>`;loadSq(()=>{if(route().v==="squads")vSquads(app);});return;}
   const all=S.sqData;const seasons=[...new Set([CUR_SEASON,...all.map(q=>q.season)])].sort().reverse();

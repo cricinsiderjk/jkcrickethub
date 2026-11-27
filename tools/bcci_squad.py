@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bcci_result import ROLE, ALIASES
 
 SH = {"Ranji Trophy": "ranji", "Syed Mushtaq Ali Trophy": "smat", "Vijay Hazare Trophy": "vht", "Irani Cup": "irani",
-      "CK Nayudu Trophy": "ckn", "Men's U23 State A Trophy": "u23a", "Cooch Behar Trophy": "cb", "Vinoo Mankad Trophy": "vm",
+      "CK Nayudu Trophy": "ckn", "Men's U23 State A Trophy": "u23a", "Men's U23 State A T20 Trophy": "u23t20", "Cooch Behar Trophy": "cb", "Vinoo Mankad Trophy": "vm",
       "Vijay Merchant Trophy": "vmt", "Senior Women's T20 Trophy": "swt20", "Senior Women's One Day Trophy": "swod",
       "Women's U23 T20 Trophy": "wu23t20", "Women's U23 One Day Trophy": "wu23od", "Women's U19 T20 Trophy": "wu19t20", "Women's U19 One Day Trophy": "wu19od"}
 CAT = {"t-jk": "Senior Men", "t-jk-u23": "Under-23 Men", "t-jk-u19": "Under-19 Men", "t-jk-u16": "Under-16 Men", "t-jkw": "Women", "t-jkw-u23": "Women", "t-jkw-u19": "Women"}
